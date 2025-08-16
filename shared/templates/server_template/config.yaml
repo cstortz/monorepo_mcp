@@ -1,0 +1,32 @@
+server:
+  host: "0.0.0.0"
+  port: 3004  # Change this to a unique port
+  
+database:
+  type: "your_database_type"  # e.g., "mongodb", "elasticsearch", etc.
+  host: "localhost"
+  port: 27017  # Change to your database port
+  database: "your_database_name"
+  username: "your_username"
+  password: "${YOUR_DB_PASSWORD}"
+  
+security:
+  auth_enabled: true
+  auth_token: "${MCP_AUTH_TOKEN}"
+  allowed_ips:
+    - "127.0.0.1"
+    - "::1"
+  
+rate_limiting:
+  requests_per_minute: 100
+  window_seconds: 60
+  
+limits:
+  max_connections: 50
+  request_timeout: 300
+  max_file_size: 1048576
+  
+logging:
+  level: "INFO"
+  file: "your_server_mcp_server.log"  # Change to your server name
+  format: "json"

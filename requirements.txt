@@ -1,0 +1,24 @@
+# Core dependencies for Monorepo MCP Server
+psutil>=5.9.0
+aiohttp>=3.8.0
+PyYAML>=6.0
+
+# Database dependencies (optional)
+# psycopg2-binary>=2.9.0  # PostgreSQL
+# mysql-connector-python>=8.0.0  # MySQL
+# redis>=4.0.0  # Redis
+
+# Testing dependencies
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+
+# Development dependencies
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+
+# Optional production enhancements
+# uvloop>=0.17.0  # High-performance event loop (Linux/macOS only)
+# prometheus-client>=0.16.0  # Metrics export
+# sentry-sdk>=1.14.0  # Error tracking

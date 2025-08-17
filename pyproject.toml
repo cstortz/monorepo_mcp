@@ -26,7 +26,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["mcp_*"]
 
 [tool.black]

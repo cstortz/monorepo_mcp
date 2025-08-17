@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Database MCP Server - Main entry point
+PostgreSQL MCP Server - Main entry point
 """
 
 import asyncio
@@ -13,12 +13,12 @@ import yaml
 from pathlib import Path
 
 from mcp_core import ServerConfig, setup_logging
-from .server import DatabaseMCPServer
+from .server import PostgresMCPServer
 
 
 async def main():
     """Main entry point for the Database MCP Server"""
-    parser = argparse.ArgumentParser(description='Database MCP Server')
+    parser = argparse.ArgumentParser(description='PostgreSQL MCP Server')
     parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
     parser.add_argument('--port', type=int, default=3003, help='Port to bind to')
     parser.add_argument('--ssl-cert', help='SSL certificate file')
@@ -71,7 +71,7 @@ async def main():
         sys.exit(1)
     
     # Create and start server
-    server_instance = DatabaseMCPServer(config)
+    server_instance = PostgresMCPServer(config)
     server = await server_instance.start_server()
     
     # Graceful shutdown handling
@@ -89,7 +89,7 @@ async def main():
         logger.info("Server cancelled")
     finally:
         await server.wait_closed()
-        logger.info("Database MCP Server stopped")
+        logger.info("PostgreSQL MCP Server stopped")
 
 
 if __name__ == "__main__":

@@ -345,12 +345,13 @@ class DatabaseMCPServer(BaseMCPServer):
                 if not self.rate_limiter.is_allowed(session.ip_address):
                     response = {
                         'jsonrpc': '2.0',
-                        'id': request_id,
                         'error': {
                             'code': -32000,
                             'message': 'Rate limit exceeded'
                         }
                     }
+                    if request_id is not None:
+                        response['id'] = request_id
                     writer.write((json.dumps(response) + '\n').encode('utf-8'))
                     await writer.drain()
                     continue
@@ -364,12 +365,13 @@ class DatabaseMCPServer(BaseMCPServer):
                             self.security.record_failed_attempt(session.ip_address)
                             response = {
                                 'jsonrpc': '2.0',
-                                'id': request_id,
                                 'error': {
                                     'code': -32001,
                                     'message': 'Authentication failed'
                                 }
                             }
+                            if request_id is not None:
+                                response['id'] = request_id
                             writer.write((json.dumps(response) + '\n').encode('utf-8'))
                             await writer.drain()
                             continue
@@ -394,12 +396,21 @@ class DatabaseMCPServer(BaseMCPServer):
                 response_time = time.time() - start_time
                 self.metrics.record_request(method, response_time, success)
                 
+                # Don't send response for notifications (requests without id)
+                if request_id is None:
+                    continue
+                
                 # Send response
                 response = {
                     'jsonrpc': '2.0',
-                    'id': request_id,
-                    'result': result
+                    'id': request_id
                 }
+                
+                # Check if result contains an error
+                if isinstance(result, dict) and 'error' in result:
+                    response['error'] = result['error']
+                else:
+                    response['result'] = result
                 writer.write((json.dumps(response) + '\n').encode('utf-8'))
                 await writer.drain()
                 
@@ -412,7 +423,7 @@ class DatabaseMCPServer(BaseMCPServer):
         """Process MCP protocol requests"""
         if method == 'initialize':
             return {
-                'protocolVersion': '2024-11-05',
+                'protocolVersion': '2025-06-18',
                 'capabilities': {
                     'tools': {}
                 },
@@ -451,6 +462,15 @@ class DatabaseMCPServer(BaseMCPServer):
                     }
                 ]
             }
+        elif method == 'resources/list':
+            # Return empty resources list
+            return {'resources': []}
+        elif method == 'prompts/list':
+            # Return empty prompts list
+            return {'prompts': []}
+        elif method == 'notifications/initialized':
+            # Acknowledge initialization notification
+            return {}
         else:
             raise ValueError(f"Unknown method: {method}")
 

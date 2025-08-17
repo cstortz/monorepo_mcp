@@ -127,7 +127,7 @@ class DatabaseTools:
     async def database_health(self) -> Dict[str, Any]:
         """Check database service health and connection"""
         try:
-            result = await self._make_request("/health")
+            result = await self._make_request("/admin/health")
             return {
                 "status": "connected",
                 "database_url": self.database_ws_url,
@@ -143,7 +143,7 @@ class DatabaseTools:
     async def list_databases(self) -> Dict[str, Any]:
         """List all available databases"""
         try:
-            result = await self._make_request("/databases")
+            result = await self._make_request("/admin/databases")
             return {
                 "databases": result.get("databases", []),
                 "count": len(result.get("databases", []))
@@ -154,7 +154,7 @@ class DatabaseTools:
     async def list_schemas(self) -> Dict[str, Any]:
         """List all schemas in the database"""
         try:
-            result = await self._make_request("/schemas")
+            result = await self._make_request("/admin/schemas")
             return {
                 "schemas": result.get("schemas", []),
                 "count": len(result.get("schemas", []))
@@ -165,9 +165,10 @@ class DatabaseTools:
     async def list_tables(self, schema_name: Optional[str] = None) -> Dict[str, Any]:
         """List all tables in the database or specific schema"""
         try:
-            endpoint = "/tables"
             if schema_name:
-                endpoint += f"?schema={schema_name}"
+                endpoint = f"/admin/tables/{schema_name}"
+            else:
+                endpoint = "/admin/tables"
             result = await self._make_request(endpoint)
             return {
                 "tables": result.get("tables", []),
@@ -183,7 +184,7 @@ class DatabaseTools:
             data = {"sql": sql}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request("/query", method="POST", data=data)
+            result = await self._make_request("/crud/raw-sql", method="POST", data=data)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -194,7 +195,7 @@ class DatabaseTools:
             data = {"sql": sql}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request("/write", method="POST", data=data)
+            result = await self._make_request("/crud/raw-sql/write", method="POST", data=data)
             return result
         except Exception as e:
             return {"error": str(e)}

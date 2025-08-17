@@ -12,7 +12,7 @@ import sys
 import yaml
 from pathlib import Path
 
-from mcp_core import ServerConfig, setup_logging
+from ..mcp_core import ServerConfig, setup_logging
 from .server import PostgresMCPServer
 
 

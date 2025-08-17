@@ -8,7 +8,7 @@ import logging
 import time
 from typing import Dict, Any, Optional
 
-from mcp_core import BaseMCPServer, ServerConfig, ClientSession
+from ..mcp_core import BaseMCPServer, ServerConfig, ClientSession
 from .tools import PostgresTools
 
 logger = logging.getLogger(__name__)

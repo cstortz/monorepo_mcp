@@ -377,6 +377,72 @@ pydantic>=2.0.0
 # Add other dependencies as needed
 ```
 
+### 8. Environment Variables and Container Networking
+
+**CRITICAL:** When creating MCP servers that connect to external services, always use environment variables instead of hardcoded URLs.
+
+#### **Environment Variable Configuration:**
+
+**`src/mcp_[service_name]/tools.py`:**
+```python
+import os
+
+class [ServiceName]Tools:
+    def __init__(self, service_url: str = None):
+        if service_url is None:
+            service_url = os.getenv('[SERVICE]_URL', 'http://localhost:8000')
+        self.service_url = service_url
+```
+
+**`src/mcp_[service_name]/__main__.py`:**
+```python
+# Command line argument (no default)
+parser.add_argument('--service-url', help='Service URL (defaults to [SERVICE]_URL env var)')
+
+# Configuration priority: CLI arg → Environment var → Config file → Default
+service_url = args.service_url or os.getenv('[SERVICE]_URL') or config_data.get('service', {}).get('url', 'http://localhost:8000')
+```
+
+**`src/mcp_core/config.py`:**
+```python
+@dataclass
+class ServerConfig:
+    # ... other fields ...
+    service_url: str = None  # Allow None for environment variable fallback
+```
+
+#### **Docker Environment Variables:**
+
+**`docker/mcp_[service_name]/docker-compose.yml`:**
+```yaml
+services:
+  [service-name]-mcp:
+    environment:
+      - [SERVICE]_URL=${[SERVICE]_URL:-http://localhost:8000}
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+```
+
+**`docker/mcp_[service_name]/.env.template`:**
+```env
+# Service-specific environment variables
+[SERVICE]_URL=http://your-service-host:port
+MCP_AUTH_TOKEN=your_auth_token_here
+LOG_LEVEL=INFO
+```
+
+#### **Common Service URL Patterns:**
+- **Database Service:** `DATABASE_WS_URL=http://database-service:8000`
+- **API Service:** `API_URL=http://api-service:8080`
+- **File Service:** `FILE_SERVICE_URL=http://file-service:9000`
+- **Cache Service:** `CACHE_URL=http://cache-service:6379`
+
+#### **Container Networking Considerations:**
+- **Service Discovery:** Use service names instead of localhost in container networks
+- **Port Mapping:** Ensure external services are accessible from containers
+- **Health Checks:** Verify service connectivity before starting MCP server
+- **Fallback URLs:** Always provide sensible defaults for local development
+
 ## Implementation Checklist
 
 - [ ] Create all directory structures
@@ -386,6 +452,8 @@ pydantic>=2.0.0
 - [ ] Create Docker configuration files
   - [ ] **CRITICAL:** Set correct build context (`context: ../..`)
   - [ ] **CRITICAL:** Remove obsolete `version` field
+  - [ ] **CRITICAL:** Configure environment variables for external services
+  - [ ] **CRITICAL:** Use service names instead of localhost in container networks
 - [ ] Create management scripts
 - [ ] Update master docker-compose file
 - [ ] Update existing management scripts
@@ -424,6 +492,18 @@ After implementation, test the following:
    - Test tool execution
    - Verify proper JSON-RPC communication
 
+6. **Environment Variable Testing:**
+   ```bash
+   # Test environment variable usage
+   docker exec [service-name]-mcp-server env | grep [SERVICE]_URL
+   
+   # Test service connectivity
+   docker exec [service-name]-mcp-server curl -f [SERVICE_URL]/health
+   
+   # Verify no localhost connections in logs
+   docker logs [service-name]-mcp-server | grep -i localhost
+   ```
+
 ## Notes
 
 - Ensure all JSON-RPC responses follow the protocol specification
@@ -461,5 +541,21 @@ If you see `ModuleNotFoundError: No module named 'mcp_core'`:
 2. Verify mcp_core module exists in `src/mcp_core/`
 3. Ensure Docker build context is set correctly
 4. Rebuild Docker image after import fixes
+
+### Container Networking Issues
+If you see connection errors to `localhost` in containerized environments:
+1. **❌ WRONG:** Hardcoded `localhost:8000` in tools or config
+2. **✅ CORRECT:** Use environment variables with proper fallbacks
+3. **Check:** Environment variable is set in docker-compose.yml
+4. **Verify:** Container can reach external services (not localhost)
+5. **Test:** Rebuild image after environment variable fixes
+6. **Debug:** Add logging to see what URL is being used
+
+### Environment Variable Priority
+Always follow this priority order for configuration:
+1. **Command Line Arguments** (highest priority)
+2. **Environment Variables** (container-friendly)
+3. **Configuration Files** (fallback)
+4. **Default Values** (development only)
 
 This prompt provides a complete template for bootstrapping any new MCP server with Docker support and proper integration with the existing monorepo structure.

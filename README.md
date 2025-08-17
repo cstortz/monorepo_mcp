@@ -10,7 +10,7 @@ This monorepo follows industry-standard practices with a clean separation of con
 mcp-monorepo/
 ├── src/                     # Source code
 │   ├── mcp_core/           # Shared core components
-│   ├── mcp_database/       # Database MCP Server
+│   ├── mcp_postgres/       # PostgreSQL MCP Server
 │   └── mcp_filesystem/     # Filesystem MCP Server
 ├── tests/                  # Test suite
 ├── docs/                   # Documentation
@@ -48,20 +48,20 @@ pip install -e .
 
 #### Individual Servers
 ```bash
-# Database Server (Port 3003)
-python -m mcp_database
+# PostgreSQL Server (Port 3003)
+python -m mcp_postgres
 
-# Filesystem Server (Port 3004)
+# Filesystem Server (Port 3005)
 python -m mcp_filesystem
 ```
 
 #### All Servers
 ```bash
 # Start all servers
-./scripts/start_all_servers.sh
+./scripts/run-all-servers.sh
 
 # Stop all servers
-./scripts/stop_all_servers.sh
+./scripts/stop-all-servers.sh
 ```
 
 ## 📦 Packages
@@ -76,8 +76,9 @@ Shared components used by all MCP servers:
 - Client session management
 - Base server implementation
 
-### mcp_database
-Database MCP Server providing:
+### mcp_postgres
+PostgreSQL MCP Server providing:
+- PostgreSQL database operations
 - Database health checks
 - Schema discovery
 - SQL query execution
@@ -97,75 +98,152 @@ Filesystem MCP Server providing:
 Each server can be configured using YAML files in the `config/` directory:
 
 ```yaml
-# config/database_server.yaml
+# config/postgres_server.yaml
 server:
-  host: "0.0.0.0"
+  host: 0.0.0.0
   port: 3003
-  
-database:
-  ws_url: "http://localhost:8000"
-  
+
 security:
   auth_enabled: true
-  auth_token: "${MCP_AUTH_TOKEN}"
+  auth_token: your-token-here
+
+database:
+  ws_url: http://dev01.int.stortz.tech:8000
 ```
 
-## 🔌 Claude Desktop Integration
+## 🐳 Docker Deployment
 
-### Database Server
-```json
-{
-  "database-mcp-server": {
-    "command": "socat",
-    "args": ["TCP:dev01.int.stortz.tech:3003", "STDIO"],
-    "env": {
-      "MCP_AUTH_TOKEN": "your-auth-token"
-    }
-  }
-}
+For Docker deployment instructions, see [DOCKER-README.md](DOCKER-README.md).
+
+### Quick Docker Commands
+```bash
+# Run all servers in Docker
+./scripts/run-all-servers.sh
+
+# Run individual servers
+./scripts/run-postgres-mcp.sh
+./scripts/run-filesystem-mcp.sh
 ```
 
-### Filesystem Server
-```json
-{
-  "filesystem-mcp-server": {
-    "command": "socat",
-    "args": ["TCP:dev01.int.stortz.tech:3004", "STDIO"],
-    "env": {
-      "MCP_AUTH_TOKEN": "your-auth-token"
-    }
-  }
-}
+## 🛡️ Security Features
+
+### Authentication
+- Token-based authentication
+- IP allowlisting/blocklisting
+- Failed attempt tracking
+- Session management
+
+### Rate Limiting
+- Sliding window rate limiting
+- Configurable limits per client
+- Automatic cleanup of old records
+
+### Access Control
+- File system access restrictions
+- Working directory confinement
+- Maximum file size limits
+- Safe tool execution
+
+## 📊 Monitoring and Metrics
+
+### Built-in Metrics
+- Request counts and error rates
+- Response time statistics
+- Connection tracking
+- System resource usage
+- Tool usage statistics
+
+### Health Checks
+- CPU, memory, and disk monitoring
+- Connection limit checking
+- Error rate monitoring
+- Overall system health status
+
+### Logging
+- Structured JSON logging
+- Request tracing
+- Error tracking
+- Performance monitoring
+
+## 🚀 Production Deployment
+
+### Docker Deployment
+
+```bash
+# Build and run all servers
+./scripts/run-all-servers.sh
+
+# Or run individually
+./scripts/run-postgres-mcp.sh
+./scripts/run-filesystem-mcp.sh
 ```
 
-## 🧪 Development
+### Systemd Service
+
+```ini
+[Unit]
+Description=MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User=mcp
+WorkingDirectory=/opt/mcp
+Environment=PATH=/opt/mcp/.venv/bin
+ExecStart=/opt/mcp/.venv/bin/python -m mcp_postgres
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Environment Configuration
+
+```bash
+# Production environment variables
+export MCP_AUTH_TOKEN="your-production-token"
+export DATABASE_WS_URL="http://your-database-api:8000"
+export LOG_LEVEL="INFO"
+```
+
+## 🧪 Testing
 
 ### Running Tests
 ```bash
-pytest tests/
+# Run all tests
+make test
+
+# Run specific test files
+pytest tests/test_postgres_server.py -v
+pytest tests/test_filesystem_server.py -v
 ```
 
-### Code Formatting
+### Test Coverage
 ```bash
-black src/
-flake8 src/
-mypy src/
+# Generate coverage report
+pytest --cov=src tests/
 ```
 
-### Adding a New Server
+## 📝 Development
 
-1. Create a new package in `src/mcp_newserver/`
-2. Extend `BaseMCPServer` from `mcp_core`
-3. Implement your tools
-4. Add configuration in `config/`
-5. Update documentation
+### Code Quality
+```bash
+# Run linting
+make lint
 
-## 📚 Documentation
+# Format code
+make format
 
-- [API Reference](docs/api.md)
-- [Configuration Guide](docs/configuration.md)
-- [Development Guide](docs/development.md)
-- [Deployment Guide](docs/deployment.md)
+# Clean up
+make clean
+```
+
+### Adding New Servers
+1. Create a new directory in `src/` (e.g., `src/mcp_newserver/`)
+2. Implement the server following the pattern in existing servers
+3. Add Docker configuration in `docker/mcp_newserver/`
+4. Update scripts and documentation
 
 ## 🤝 Contributing
 
@@ -177,4 +255,4 @@ mypy src/
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.

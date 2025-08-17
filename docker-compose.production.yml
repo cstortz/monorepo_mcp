@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres-mcp:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: postgres-mcp-server
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./logs:/app/logs
+      - ./ssl:/etc/ssl/certs:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
+      - DATABASE_WS_URL=${DATABASE_WS_URL}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    security_opt:
+      - no-new-privileges:true
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import asyncio; from src.mcp_postgres.__main__ import main; asyncio.run(main())'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Optional: Reverse proxy with SSL termination
+  nginx:
+    image: nginx:alpine
+    container_name: postgres-mcp-nginx
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl/certs:ro
+    depends_on:
+      - postgres-mcp
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge

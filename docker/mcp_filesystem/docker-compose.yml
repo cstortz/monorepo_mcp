@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  filesystem-mcp:
+    build: 
+      context: ../..
+      dockerfile: docker/mcp_filesystem/Dockerfile
+    container_name: filesystem-mcp-server
+    restart: unless-stopped
+    ports:
+      - "3005:3005"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ../../logs:/app/logs
+      - /tmp:/tmp:ro  # Read-only access to /tmp for filesystem operations
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import asyncio; from src.mcp_filesystem.__main__ import main; asyncio.run(main())'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+networks:
+  mcp-network:
+    driver: bridge

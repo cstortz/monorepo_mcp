@@ -1,8 +1,8 @@
-version: '3.8'
-
 services:
   postgres-mcp:
-    build: .
+    build:
+      context: ../..
+      dockerfile: docker/mcp_postgres/Dockerfile
     container_name: postgres-mcp-server
     restart: unless-stopped
     ports:

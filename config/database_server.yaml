@@ -1,0 +1,29 @@
+server:
+  host: "0.0.0.0"
+  port: 3003
+  
+database:
+  ws_url: "http://localhost:8000"
+  
+security:
+  auth_enabled: true
+  auth_token: "${MCP_AUTH_TOKEN}"
+  allowed_ips:
+    - "192.168.1.0/24"
+    - "10.0.0.0/8"
+  
+rate_limiting:
+  requests_per_minute: 100
+  window_seconds: 60
+  
+limits:
+  max_connections: 50
+  request_timeout: 300
+  max_file_size: 1048576
+  
+logging:
+  level: "INFO"
+  file: "database_mcp_server.log"
+  format: "json"
+
+

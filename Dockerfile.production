@@ -1,0 +1,37 @@
+FROM python:3.11-slim
+
+# Create non-root user
+RUN groupadd -r mcpuser && useradd -r -g mcpuser mcpuser
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application files
+COPY production_mcp_server.py .
+COPY health_check.py .
+
+# Create necessary directories
+RUN mkdir -p /var/log/mcp-server /app/data \
+    && chown -R mcpuser:mcpuser /app /var/log/mcp-server
+
+# Make scripts executable
+RUN chmod +x production_mcp_server.py health_check.py
+
+# Switch to non-root user
+USER mcpuser
+
+# Health check script
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python health_check.py
+
+EXPOSE 3001
+
+CMD ["python", "production_mcp_server.py", "--log-level", "INFO"]

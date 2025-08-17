@@ -1,0 +1,46 @@
+[Unit]
+Description=Database MCP Server
+Documentation=https://your-docs.com/database-mcp-server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mcpuser
+Group=mcpuser
+WorkingDirectory=/opt/database-mcp-server
+Environment=MCP_AUTH_TOKEN=your-secure-token-here
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 production_mcp_server.py \
+    --host 0.0.0.0 \
+    --port 3003 \
+    --config config.yaml \
+    --max-connections 100 \
+    --rate-limit 1000 \
+    --log-level INFO
+
+# Restart configuration
+Restart=always
+RestartSec=3
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Security settings
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/mcp-server/logs /var/log/mcp-server
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=1G
+CPUQuota=100%
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,9 @@
+# requirements.txt - Production Dependencies
+psutil>=5.9.0
+aiohttp>=3.8.0
+PyYAML>=6.0
+
+# Optional production enhancements
+# uvloop>=0.17.0  # High-performance event loop (Linux/macOS only)
+# prometheus-client>=0.16.0  # Metrics export
+# sentry-sdk>=1.14.0  # Error tracking

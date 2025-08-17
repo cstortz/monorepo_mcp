@@ -21,6 +21,6 @@ class ServerConfig:
     request_timeout: int = 300
     allowed_ips: Optional[Set[str]] = None
     metrics_enabled: bool = True
-    database_ws_url: str = "http://localhost:8000"
+    database_ws_url: str = None
 
 

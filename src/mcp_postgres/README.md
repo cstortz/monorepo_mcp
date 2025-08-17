@@ -36,7 +36,7 @@ python -m mcp_postgres --config config.yaml
 
 ## Configuration
 
-The server connects to a PostgreSQL database service running on `http://localhost:8000` by default. This service should provide the following endpoints:
+The server connects to a PostgreSQL database service via the `DATABASE_WS_URL` environment variable (defaults to `http://localhost:8000`). This service should provide the following endpoints:
 
 - `/admin/health` - Health check
 - `/admin/databases` - List databases

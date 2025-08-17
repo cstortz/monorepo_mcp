@@ -29,7 +29,7 @@ async def main():
     parser.add_argument('--rate-limit', type=int, default=100, help='Rate limit (requests per minute)')
     parser.add_argument('--log-level', default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'])
     parser.add_argument('--config', help='Configuration file path')
-    parser.add_argument('--database-url', default='http://localhost:8000', help='Database service URL')
+    parser.add_argument('--database-url', help='Database service URL (defaults to DATABASE_WS_URL env var)')
     
     args = parser.parse_args()
     
@@ -58,7 +58,7 @@ async def main():
         auth_token=args.auth_token or os.getenv('MCP_AUTH_TOKEN') or config_data.get('security', {}).get('auth_token'),
         max_connections=args.max_connections or config_data.get('limits', {}).get('max_connections', 50),
         rate_limit_requests=args.rate_limit or config_data.get('rate_limiting', {}).get('requests_per_minute', 100),
-        database_ws_url=args.database_url or config_data.get('database', {}).get('ws_url', 'http://localhost:8000')
+        database_ws_url=args.database_url or os.getenv('DATABASE_WS_URL') or config_data.get('database', {}).get('ws_url', 'http://localhost:8000')
     )
     
     # Validate configuration

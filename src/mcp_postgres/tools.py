@@ -5,6 +5,7 @@ Database tools for MCP server
 import asyncio
 import json
 import logging
+import os
 import aiohttp
 from typing import Dict, Any, List, Optional
 
@@ -14,7 +15,9 @@ logger = logging.getLogger(__name__)
 class PostgresTools:
     """PostgreSQL database operation tools"""
     
-    def __init__(self, database_ws_url: str = "http://localhost:8000"):
+    def __init__(self, database_ws_url: str = None):
+        if database_ws_url is None:
+            database_ws_url = os.getenv('DATABASE_WS_URL', 'http://localhost:8000')
         self.database_ws_url = database_ws_url
         self.session: Optional[aiohttp.ClientSession] = None
     

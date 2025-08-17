@@ -49,6 +49,10 @@ monorepo_mcp/
 - Entry point for running the server as a module
 - Include argument parsing for host, port, log level, and auth
 - Support for `--no-auth` flag for development
+- **CRITICAL:** Use correct import paths for mcp_core:
+  ```python
+  from ..mcp_core import ServerConfig, setup_logging
+  ```
 
 **`src/mcp_[service_name]/server.py`:**
 - Implement the main MCP server class `[ServiceName]MCPServer`
@@ -57,6 +61,10 @@ monorepo_mcp/
 - Include error handling for notifications (no response for `request_id: None`)
 - Support authentication with configurable token
 - Include proper logging
+- **CRITICAL:** Use correct import paths for mcp_core:
+  ```python
+  from ..mcp_core import BaseMCPServer, ServerConfig, ClientSession
+  ```
 
 **`src/mcp_[service_name]/tools.py`:**
 - Implement the tools class `[ServiceName]Tools`
@@ -99,8 +107,6 @@ CMD ["python", "-m", "mcp_[service_name]", "--host", "0.0.0.0", "--port", "300[X
 
 **`docker/mcp_[service_name]/docker-compose.yml`:**
 ```yaml
-version: '3.8'
-
 services:
   [service-name]-mcp:
     build:
@@ -375,7 +381,11 @@ pydantic>=2.0.0
 
 - [ ] Create all directory structures
 - [ ] Implement core server files (`__init__.py`, `__main__.py`, `server.py`, `tools.py`)
+  - [ ] **CRITICAL:** Use correct import paths (`from ..mcp_core import`)
+  - [ ] **CRITICAL:** Test imports work before Docker build
 - [ ] Create Docker configuration files
+  - [ ] **CRITICAL:** Set correct build context (`context: ../..`)
+  - [ ] **CRITICAL:** Remove obsolete `version` field
 - [ ] Create management scripts
 - [ ] Update master docker-compose file
 - [ ] Update existing management scripts
@@ -422,5 +432,34 @@ After implementation, test the following:
 - Follow security best practices (non-root user in Docker, environment variables)
 - Make scripts executable: `chmod +x scripts/*.sh`
 - Test thoroughly before committing
+
+## 🚨 Common Pitfalls to Avoid
+
+### Import Path Issues
+- **❌ WRONG:** `from mcp_core import BaseMCPServer`
+- **✅ CORRECT:** `from ..mcp_core import BaseMCPServer`
+- **Why:** The mcp_core module is in the same src directory, so use relative imports
+
+### Docker Build Context Issues
+- **❌ WRONG:** `build: .` (in individual docker-compose.yml files)
+- **✅ CORRECT:** 
+  ```yaml
+  build:
+    context: ../..
+    dockerfile: docker/mcp_[service_name]/Dockerfile
+  ```
+- **Why:** requirements.txt is in the root directory, not in the docker subdirectory
+
+### Docker Compose Version Warnings
+- **❌ WRONG:** Include `version: '3.8'` in docker-compose.yml
+- **✅ CORRECT:** Remove version field entirely
+- **Why:** The version field is obsolete in modern Docker Compose
+
+### Module Import Errors
+If you see `ModuleNotFoundError: No module named 'mcp_core'`:
+1. Check that import uses relative path: `from ..mcp_core import`
+2. Verify mcp_core module exists in `src/mcp_core/`
+3. Ensure Docker build context is set correctly
+4. Rebuild Docker image after import fixes
 
 This prompt provides a complete template for bootstrapping any new MCP server with Docker support and proper integration with the existing monorepo structure.

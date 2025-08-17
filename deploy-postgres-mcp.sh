@@ -17,18 +17,18 @@ docker build -t postgres-mcp:latest .
 
 # Stop existing container if running
 echo "🛑 Stopping existing container..."
-docker-compose down || true
+docker compose down || true
 
 # Start the container
 echo "▶️  Starting PostgreSQL MCP Server..."
-docker-compose up -d
+docker compose up -d
 
 # Wait for container to be healthy
 echo "⏳ Waiting for container to be healthy..."
 timeout=60
 counter=0
 while [ $counter -lt $timeout ]; do
-    if docker-compose ps | grep -q "healthy"; then
+    if docker compose ps | grep -q "healthy"; then
         echo "✅ Container is healthy!"
         break
     fi
@@ -39,7 +39,7 @@ done
 if [ $counter -eq $timeout ]; then
     echo "❌ Container failed to become healthy within $timeout seconds"
     echo "📝 Container logs:"
-    docker-compose logs
+    docker compose logs
     exit 1
 fi
 
@@ -47,4 +47,4 @@ echo "🎉 PostgreSQL MCP Server deployed successfully!"
 echo "🔗 Server should be available at: http://localhost:3003"
 echo ""
 echo "📊 Container status:"
-docker-compose ps
+docker compose ps

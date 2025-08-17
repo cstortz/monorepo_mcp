@@ -17,10 +17,10 @@ fi
 
 # Run the container
 echo "▶️  Starting PostgreSQL MCP Server..."
-docker-compose up -d
+docker compose up -d
 
 echo "✅ PostgreSQL MCP Server started!"
 echo "🔗 Server available at: http://localhost:3003"
 echo ""
 echo "📊 Container status:"
-docker-compose ps
+docker compose ps

@@ -74,11 +74,11 @@ This document describes how to deploy the MCP servers using Docker containers. E
 ./scripts/build-all-servers.sh
 
 # Run all servers
-docker-compose -f docker-compose.all.yml up -d
+docker compose -f docker-compose.all.yml up -d
 
 # Run individual server
-cd docker/mcp_postgres && docker-compose up -d
-cd docker/mcp_filesystem && docker-compose up -d
+cd docker/mcp_postgres && docker compose up -d
+cd docker/mcp_filesystem && docker compose up -d
 ```
 
 ## ⚙️ Configuration
@@ -119,28 +119,28 @@ Each server runs on a different port:
 ./scripts/stop-all-servers.sh
 
 # Individual servers
-cd docker/mcp_postgres && docker-compose down
-cd docker/mcp_filesystem && docker-compose down
+cd docker/mcp_postgres && docker compose down
+cd docker/mcp_filesystem && docker compose down
 ```
 
 ### View Logs
 ```bash
 # All servers
-docker-compose -f docker-compose.all.yml logs -f
+docker compose -f docker-compose.all.yml logs -f
 
 # Individual servers
-cd docker/mcp_postgres && docker-compose logs -f
-cd docker/mcp_filesystem && docker-compose logs -f
+cd docker/mcp_postgres && docker compose logs -f
+cd docker/mcp_filesystem && docker compose logs -f
 ```
 
 ### Check Status
 ```bash
 # All servers
-docker-compose -f docker-compose.all.yml ps
+docker compose -f docker-compose.all.yml ps
 
 # Individual servers
-cd docker/mcp_postgres && docker-compose ps
-cd docker/mcp_filesystem && docker-compose ps
+cd docker/mcp_postgres && docker compose ps
+cd docker/mcp_filesystem && docker compose ps
 ```
 
 ## 🧪 Testing
@@ -149,7 +149,7 @@ cd docker/mcp_filesystem && docker-compose ps
 Each container includes health checks:
 ```bash
 # Check health status
-docker-compose -f docker-compose.all.yml ps
+docker compose -f docker-compose.all.yml ps
 
 # Manual health check
 docker exec postgres-mcp-server python -c "import asyncio; from src.mcp_postgres.__main__ import main; asyncio.run(main())"
@@ -169,13 +169,13 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVe
 ### Container Issues
 ```bash
 # Check logs
-docker-compose -f docker-compose.all.yml logs [service-name]
+docker compose -f docker-compose.all.yml logs [service-name]
 
 # Check resource usage
 docker stats
 
 # Restart specific service
-docker-compose -f docker-compose.all.yml restart [service-name]
+docker compose -f docker-compose.all.yml restart [service-name]
 ```
 
 ### Build Issues
@@ -195,8 +195,8 @@ docker network ls
 docker network inspect mcp-monorepo_mcp-network
 
 # Restart network
-docker-compose -f docker-compose.all.yml down
-docker-compose -f docker-compose.all.yml up -d
+docker compose -f docker-compose.all.yml down
+docker compose -f docker-compose.all.yml up -d
 ```
 
 ## 📊 Monitoring
@@ -207,13 +207,13 @@ docker-compose -f docker-compose.all.yml up -d
 docker stats
 
 # Resource usage by service
-docker-compose -f docker-compose.all.yml top
+docker compose -f docker-compose.all.yml top
 ```
 
 ### Health Monitoring
 ```bash
 # Health status
-docker-compose -f docker-compose.all.yml ps
+docker compose -f docker-compose.all.yml ps
 
 # Health check logs
 docker inspect postgres-mcp-server | grep -A 5 "Health"

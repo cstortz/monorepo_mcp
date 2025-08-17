@@ -63,8 +63,8 @@ docker build -t postgres-mcp:latest .
 
 ### 2. Run the Container
 ```bash
-# Using docker-compose (recommended)
-docker-compose up -d
+# Using docker compose (recommended)
+docker compose up -d
 
 # Or run directly
 docker run --rm -it postgres-mcp:latest
@@ -76,7 +76,7 @@ docker run --rm -it postgres-mcp:latest
 docker run --rm -it postgres-mcp:latest python -c "import asyncio; from src.mcp_postgres.__main__ import main; asyncio.run(main())"
 
 # Check container health
-docker-compose ps
+docker compose ps
 ```
 
 ## ⚙️ Configuration
@@ -123,36 +123,36 @@ cp .env.template .env
 docker build -t postgres-mcp:latest .
 
 # Run with production compose
-docker-compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml up -d
 ```
 
 ## �� Management Commands
 
 ### Start the service
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Stop the service
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ### View logs
 ```bash
-docker-compose logs -f postgres-mcp
+docker compose logs -f postgres-mcp
 ```
 
 ### Restart the service
 ```bash
-docker-compose restart postgres-mcp
+docker compose restart postgres-mcp
 ```
 
 ### Update the service
 ```bash
-docker-compose down
+docker compose down
 docker build -t postgres-mcp:latest .
-docker-compose up -d
+docker compose up -d
 ```
 
 ## 🧪 Testing
@@ -160,7 +160,7 @@ docker-compose up -d
 ### Health Check
 ```bash
 # Check if container is healthy
-docker-compose ps
+docker compose ps
 
 # Manual health check
 docker exec postgres-mcp-server python -c "import asyncio; from src.mcp_postgres.__main__ import main; asyncio.run(main())"
@@ -177,10 +177,10 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVe
 ### Container won't start
 ```bash
 # Check logs
-docker-compose logs postgres-mcp
+docker compose logs postgres-mcp
 
 # Check environment variables
-docker-compose config
+docker compose config
 ```
 
 ### Health check failing
@@ -209,13 +209,13 @@ docker inspect postgres-mcp-server | grep -A 10 "HostConfig"
 docker stats postgres-mcp-server
 
 # Container logs
-docker-compose logs -f postgres-mcp
+docker compose logs -f postgres-mcp
 ```
 
 ### Health Monitoring
 ```bash
 # Health status
-docker-compose ps
+docker compose ps
 
 # Health check logs
 docker inspect postgres-mcp-server | grep -A 5 "Health"

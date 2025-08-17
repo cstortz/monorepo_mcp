@@ -17,10 +17,10 @@ fi
 
 # Run the container
 echo "▶️  Starting Filesystem MCP Server..."
-docker-compose up -d
+docker compose up -d
 
 echo "✅ Filesystem MCP Server started!"
 echo "🔗 Server available at: http://localhost:3005"
 echo ""
 echo "📊 Container status:"
-docker-compose ps
+docker compose ps

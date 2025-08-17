@@ -210,12 +210,12 @@ fi
 
 # Start the container
 cd docker/mcp_[service_name]
-docker-compose up -d
+docker compose up -d
 
 echo "✅ [Service Name] MCP server started!"
 echo "🌐 Server running on port 300[X]"
 echo "📊 Health check: http://localhost:300[X]/health"
-echo "📝 Logs: docker-compose logs -f"
+echo "📝 Logs: docker compose logs -f"
 ```
 
 **`scripts/deploy-[service-name]-mcp.sh`:**

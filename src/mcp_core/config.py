@@ -22,5 +22,6 @@ class ServerConfig:
     allowed_ips: Optional[Set[str]] = None
     metrics_enabled: bool = True
     database_ws_url: str = None
+    resume_api_url: str = None
 
 

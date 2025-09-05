@@ -15,6 +15,10 @@ docker build -t postgres-mcp:latest -f docker/mcp_postgres/Dockerfile .
 echo "📦 Building Filesystem MCP Server..."
 docker build -t filesystem-mcp:latest -f docker/mcp_filesystem/Dockerfile .
 
+# Build REST API MCP Server
+echo "📦 Building REST API MCP Server..."
+docker build -t rest-api-mcp:latest -f docker/mcp_rest_api/Dockerfile .
+
 echo "✅ All Docker images built successfully!"
 echo ""
 echo "🚀 To run all servers:"
@@ -23,3 +27,4 @@ echo ""
 echo "🔧 To run individual servers:"
 echo "   cd docker/mcp_postgres && docker compose up -d"
 echo "   cd docker/mcp_filesystem && docker compose up -d"
+echo "   cd docker/mcp_rest_api && docker compose up -d"

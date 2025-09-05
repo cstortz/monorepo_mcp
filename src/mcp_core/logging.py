@@ -26,15 +26,30 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_entry)
 
 
-def setup_logging(log_level: str = "INFO", log_file: str = "mcp_server.log"):
+def setup_logging(log_level: str = "INFO", log_file: str = "logs/mcp_server.log"):
     """Setup logging configuration"""
+    import os
+    
     logger = logging.getLogger()
     logger.setLevel(getattr(logging, log_level.upper()))
     
-    # File handler with JSON formatting
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setFormatter(JSONFormatter())
-    logger.addHandler(file_handler)
+    # Create logs directory if it doesn't exist
+    log_dir = os.path.dirname(log_file)
+    if log_dir and not os.path.exists(log_dir):
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+        except (OSError, PermissionError):
+            # If we can't create the directory, fall back to console-only logging
+            pass
+    
+    # File handler with JSON formatting (only if we can write to the file)
+    try:
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(JSONFormatter())
+        logger.addHandler(file_handler)
+    except (OSError, PermissionError):
+        # If we can't write to the file, just use console logging
+        pass
     
     # Console handler with standard formatting
     console_handler = logging.StreamHandler()

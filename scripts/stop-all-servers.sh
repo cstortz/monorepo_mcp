@@ -14,6 +14,7 @@ docker compose -f docker-compose.all.yml down
 # Also stop individual server containers if running
 echo "🛑 Stopping individual server containers..."
 cd docker/mcp_postgres && docker compose down 2>/dev/null || true
+cd ../mcp_rest_api && docker compose down 2>/dev/null || true
 cd ../mcp_filesystem && docker compose down 2>/dev/null || true
 cd ../..
 

@@ -1,5 +1,5 @@
 """
-Database tools for MCP server
+Database tools for MCP server - Updated to utilize all database_ws features
 """
 
 import asyncio
@@ -7,13 +7,13 @@ import json
 import logging
 import os
 import aiohttp
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
 
 class PostgresTools:
-    """PostgreSQL database operation tools"""
+    """PostgreSQL database operation tools with full database_ws integration"""
     
     def __init__(self, database_ws_url: str = None):
         if database_ws_url is None:
@@ -182,94 +182,193 @@ class PostgresTools:
             return {"error": str(e)}
     
     async def execute_sql(self, sql: str, parameters: Optional[Dict] = None) -> Dict[str, Any]:
-        """Execute a PostgreSQL SQL query (read-only)"""
+        """Execute a PostgreSQL SQL query (read-only) using raw SQL endpoint"""
         try:
             data = {"sql": sql}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request("/crud/raw-sql", method="POST", data=data)
+            result = await self._make_request("/raw/sql", method="POST", data=data)
             return result
         except Exception as e:
             return {"error": str(e)}
     
     async def execute_write_sql(self, sql: str, parameters: Optional[Dict] = None) -> Dict[str, Any]:
-        """Execute a PostgreSQL SQL write operation (INSERT, UPDATE, DELETE)"""
+        """Execute a PostgreSQL SQL write operation (INSERT, UPDATE, DELETE) using raw SQL endpoint"""
         try:
             data = {"sql": sql}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request("/crud/raw-sql/write", method="POST", data=data)
+            result = await self._make_request("/raw/sql/write", method="POST", data=data)
+            return result
+        except Exception as e:
+            return {"error": str(e)}
+    
+    # New Prepared Statement Tools
+    async def execute_prepared_sql(self, sql: str, parameters: Optional[Dict] = None, operation_type: str = "read") -> Dict[str, Any]:
+        """Execute a prepared SQL statement with advanced validation and caching"""
+        try:
+            data = {
+                "sql": sql,
+                "operation_type": operation_type
+            }
+            if parameters:
+                data["parameters"] = parameters
+            result = await self._make_request("/crud/prepared/execute", method="POST", data=data)
+            return result
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def execute_prepared_select(self, sql: str, parameters: Optional[Dict] = None) -> Dict[str, Any]:
+        """Execute a prepared SELECT statement with validation"""
+        try:
+            data = {"sql": sql}
+            if parameters:
+                data["parameters"] = parameters
+            result = await self._make_request("/crud/prepared/select", method="POST", data=data)
+            return result
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def execute_prepared_insert(self, sql: str, parameters: Optional[Dict] = None) -> Dict[str, Any]:
+        """Execute a prepared INSERT statement with validation"""
+        try:
+            data = {"sql": sql}
+            if parameters:
+                data["parameters"] = parameters
+            result = await self._make_request("/crud/prepared/insert", method="POST", data=data)
+            return result
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def execute_prepared_update(self, sql: str, parameters: Optional[Dict] = None) -> Dict[str, Any]:
+        """Execute a prepared UPDATE statement with validation"""
+        try:
+            data = {"sql": sql}
+            if parameters:
+                data["parameters"] = parameters
+            result = await self._make_request("/crud/prepared/update", method="POST", data=data)
+            return result
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def execute_prepared_delete(self, sql: str, parameters: Optional[Dict] = None) -> Dict[str, Any]:
+        """Execute a prepared DELETE statement with validation"""
+        try:
+            data = {"sql": sql}
+            if parameters:
+                data["parameters"] = parameters
+            result = await self._make_request("/crud/prepared/delete", method="POST", data=data)
+            return result
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def validate_prepared_sql(self, sql: str, parameters: Optional[Dict] = None, operation_type: str = "read") -> Dict[str, Any]:
+        """Validate a prepared SQL statement without executing it"""
+        try:
+            data = {
+                "sql": sql,
+                "operation_type": operation_type
+            }
+            if parameters:
+                data["parameters"] = parameters
+            result = await self._make_request("/crud/prepared/validate", method="POST", data=data)
+            return result
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def get_prepared_statements(self) -> Dict[str, Any]:
+        """Get information about cached prepared statements"""
+        try:
+            result = await self._make_request("/crud/prepared/statements", method="GET")
+            return result
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def clear_prepared_statements(self) -> Dict[str, Any]:
+        """Clear all cached prepared statements"""
+        try:
+            result = await self._make_request("/crud/prepared/statements", method="DELETE")
+            return result
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def clear_specific_prepared_statement(self, statement_name: str) -> Dict[str, Any]:
+        """Clear a specific prepared statement by name"""
+        try:
+            result = await self._make_request(f"/crud/prepared/statements/{statement_name}", method="DELETE")
             return result
         except Exception as e:
             return {"error": str(e)}
     
     async def read_records(self, schema_name: str, table_name: str, limit: int = 100, 
                           offset: int = 0, order_by: Optional[str] = None) -> Dict[str, Any]:
-        """Read records from a table"""
+        """Read records from a table using CRUD endpoint"""
         try:
-            data = {
-                "schema": schema_name,
-                "table": table_name,
-                "limit": limit,
-                "offset": offset
-            }
+            # Build query parameters
+            params = []
+            if limit != 100:
+                params.append(f"limit={limit}")
+            if offset != 0:
+                params.append(f"offset={offset}")
             if order_by:
-                data["order_by"] = order_by
-            result = await self._make_request("/records", method="POST", data=data)
+                params.append(f"order_by={order_by}")
+            
+            query_string = "&".join(params)
+            endpoint = f"/crud/{schema_name}/{table_name}"
+            if query_string:
+                endpoint += f"?{query_string}"
+            
+            result = await self._make_request(endpoint, method="GET")
             return result
         except Exception as e:
             return {"error": str(e)}
     
     async def read_record(self, schema_name: str, table_name: str, record_id: str) -> Dict[str, Any]:
-        """Read a specific record by ID"""
+        """Read a specific record by ID using CRUD endpoint"""
         try:
-            data = {
-                "schema": schema_name,
-                "table": table_name,
-                "id": record_id
-            }
-            result = await self._make_request("/record", method="POST", data=data)
+            endpoint = f"/crud/{schema_name}/{table_name}/{record_id}"
+            result = await self._make_request(endpoint, method="GET")
             return result
         except Exception as e:
             return {"error": str(e)}
     
     async def create_record(self, schema_name: str, table_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new record in a table"""
+        """Create a new record in a table using CRUD endpoint"""
         try:
-            request_data = {
-                "schema": schema_name,
-                "table": table_name,
-                "data": data
-            }
-            result = await self._make_request("/create", method="POST", data=request_data)
+            request_data = {"data": data}
+            endpoint = f"/crud/{schema_name}/{table_name}"
+            result = await self._make_request(endpoint, method="POST", data=request_data)
             return result
         except Exception as e:
             return {"error": str(e)}
     
     async def update_record(self, schema_name: str, table_name: str, record_id: str, 
                            data: Dict[str, Any]) -> Dict[str, Any]:
-        """Update an existing record"""
+        """Update an existing record using CRUD endpoint"""
         try:
-            request_data = {
-                "schema": schema_name,
-                "table": table_name,
-                "id": record_id,
-                "data": data
-            }
-            result = await self._make_request("/update", method="POST", data=request_data)
+            request_data = {"data": data}
+            endpoint = f"/crud/{schema_name}/{table_name}/{record_id}"
+            result = await self._make_request(endpoint, method="PUT", data=request_data)
             return result
         except Exception as e:
             return {"error": str(e)}
     
     async def delete_record(self, schema_name: str, table_name: str, record_id: str) -> Dict[str, Any]:
-        """Delete a record from a table"""
+        """Delete a record from a table using CRUD endpoint"""
         try:
-            data = {
-                "schema": schema_name,
-                "table": table_name,
-                "id": record_id
-            }
-            result = await self._make_request("/delete", method="POST", data=data)
+            endpoint = f"/crud/{schema_name}/{table_name}/{record_id}"
+            result = await self._make_request(endpoint, method="DELETE")
+            return result
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def upsert_record(self, schema_name: str, table_name: str, record_id: str, 
+                           data: Dict[str, Any]) -> Dict[str, Any]:
+        """Upsert a record (insert if not exists, update if exists) using CRUD endpoint"""
+        try:
+            request_data = {"data": data}
+            endpoint = f"/crud/{schema_name}/{table_name}/{record_id}"
+            result = await self._make_request(endpoint, method="PATCH", data=request_data)
             return result
         except Exception as e:
             return {"error": str(e)}

@@ -309,6 +309,182 @@ class PostgresMCPServer(BaseMCPServer):
                     },
                     "required": ["schema_name", "table_name", "record_id"]
                 }
+            },
+            "upsert_record": {
+                "name": "upsert_record",
+                "description": "Upsert a record (insert if not exists, update if exists)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "schema_name": {
+                            "type": "string",
+                            "description": "Schema name"
+                        },
+                        "table_name": {
+                            "type": "string",
+                            "description": "Table name"
+                        },
+                        "record_id": {
+                            "type": "string",
+                            "description": "Record ID"
+                        },
+                        "data": {
+                            "type": "object",
+                            "description": "Record data"
+                        }
+                    },
+                    "required": ["schema_name", "table_name", "record_id", "data"]
+                }
+            },
+            "execute_prepared_sql": {
+                "name": "execute_prepared_sql",
+                "description": "Execute a prepared SQL statement with advanced validation and caching",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "sql": {
+                            "type": "string",
+                            "description": "SQL query to execute"
+                        },
+                        "parameters": {
+                            "type": "object",
+                            "description": "Query parameters (optional)"
+                        },
+                        "operation_type": {
+                            "type": "string",
+                            "description": "Operation type: 'read' or 'write'",
+                            "default": "read"
+                        }
+                    },
+                    "required": ["sql"]
+                }
+            },
+            "execute_prepared_select": {
+                "name": "execute_prepared_select",
+                "description": "Execute a prepared SELECT statement with validation",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "sql": {
+                            "type": "string",
+                            "description": "SELECT query to execute"
+                        },
+                        "parameters": {
+                            "type": "object",
+                            "description": "Query parameters (optional)"
+                        }
+                    },
+                    "required": ["sql"]
+                }
+            },
+            "execute_prepared_insert": {
+                "name": "execute_prepared_insert",
+                "description": "Execute a prepared INSERT statement with validation",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "sql": {
+                            "type": "string",
+                            "description": "INSERT query to execute"
+                        },
+                        "parameters": {
+                            "type": "object",
+                            "description": "Query parameters (optional)"
+                        }
+                    },
+                    "required": ["sql"]
+                }
+            },
+            "execute_prepared_update": {
+                "name": "execute_prepared_update",
+                "description": "Execute a prepared UPDATE statement with validation",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "sql": {
+                            "type": "string",
+                            "description": "UPDATE query to execute"
+                        },
+                        "parameters": {
+                            "type": "object",
+                            "description": "Query parameters (optional)"
+                        }
+                    },
+                    "required": ["sql"]
+                }
+            },
+            "execute_prepared_delete": {
+                "name": "execute_prepared_delete",
+                "description": "Execute a prepared DELETE statement with validation",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "sql": {
+                            "type": "string",
+                            "description": "DELETE query to execute"
+                        },
+                        "parameters": {
+                            "type": "object",
+                            "description": "Query parameters (optional)"
+                        }
+                    },
+                    "required": ["sql"]
+                }
+            },
+            "validate_prepared_sql": {
+                "name": "validate_prepared_sql",
+                "description": "Validate a prepared SQL statement without executing it",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "sql": {
+                            "type": "string",
+                            "description": "SQL query to validate"
+                        },
+                        "parameters": {
+                            "type": "object",
+                            "description": "Query parameters (optional)"
+                        },
+                        "operation_type": {
+                            "type": "string",
+                            "description": "Operation type: 'read' or 'write'",
+                            "default": "read"
+                        }
+                    },
+                    "required": ["sql"]
+                }
+            },
+            "get_prepared_statements": {
+                "name": "get_prepared_statements",
+                "description": "Get information about cached prepared statements",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            },
+            "clear_prepared_statements": {
+                "name": "clear_prepared_statements",
+                "description": "Clear all cached prepared statements",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            },
+            "clear_specific_prepared_statement": {
+                "name": "clear_specific_prepared_statement",
+                "description": "Clear a specific prepared statement by name",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "statement_name": {
+                            "type": "string",
+                            "description": "Name of the prepared statement to clear"
+                        }
+                    },
+                    "required": ["statement_name"]
+                }
             }
         }
     

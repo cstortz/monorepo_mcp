@@ -10,6 +10,7 @@ from typing import Optional
 @dataclass
 class ClientSession:
     """Client session information"""
+
     client_id: str
     ip_address: str
     connected_at: datetime
@@ -17,5 +18,3 @@ class ClientSession:
     request_count: int = 0
     authenticated: bool = False
     user_agent: Optional[str] = None
-
-

@@ -7,5 +7,3 @@ from .tools import PostgresTools
 
 __version__ = "1.0.0"
 __all__ = ["PostgresMCPServer", "PostgresTools"]
-
-

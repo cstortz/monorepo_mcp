@@ -9,6 +9,7 @@ from typing import Optional, Set
 @dataclass
 class ServerConfig:
     """Configuration for MCP servers"""
+
     host: str = "0.0.0.0"
     port: int = 3001
     ssl_cert: Optional[str] = None
@@ -23,5 +24,3 @@ class ServerConfig:
     metrics_enabled: bool = True
     database_ws_url: str = None
     resume_api_url: str = None
-
-

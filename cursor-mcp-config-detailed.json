@@ -1,0 +1,87 @@
+{
+  "mcpServers": {
+    "postgres-mcp-server": {
+      "command": "socat",
+      "args": ["TCP:localhost:3003", "STDIO"],
+      "env": {
+        "MCP_AUTH_TOKEN": "6b649d2159b61bf69f0a05fd9fe03bd8ead6f8414271b69149bce3fcd1326aec"
+      }
+    },
+    "rest-api-mcp-server": {
+      "command": "socat",
+      "args": ["TCP:localhost:3004", "STDIO"],
+      "env": {
+        "MCP_AUTH_TOKEN": "6b649d2159b61bf69f0a05fd9fe03bd8ead6f8414271b69149bce3fcd1326aec"
+      }
+    },
+    "filesystem-mcp-server": {
+      "command": "socat",
+      "args": ["TCP:localhost:3005", "STDIO"],
+      "env": {
+        "MCP_AUTH_TOKEN": "6b649d2159b61bf69f0a05fd9fe03bd8ead6f8414271b69149bce3fcd1326aec"
+      }
+    }
+  }
+}
+
+/*
+MCP Server Descriptions:
+
+1. postgres-mcp-server (Port 3003):
+   - Advanced PostgreSQL database operations
+   - Features: CRUD operations, prepared statements, SQL validation
+   - Tools: execute_sql, execute_prepared_sql, read_records, create_record, etc.
+   - Security: SQL injection protection, parameter binding
+   - Integration: Full database_ws v2.1.0 integration
+
+2. rest-api-mcp-server (Port 3004):
+   - REST API operations and management
+   - Features: HTTP requests, API testing, endpoint management
+   - Tools: make_request, test_endpoint, manage_apis, etc.
+
+3. filesystem-mcp-server (Port 3005):
+   - File system operations
+   - Features: File reading, directory listing, file management
+   - Tools: read_file, list_files, write_file, etc.
+
+Alternative Configurations:
+
+For Remote Access (replace localhost with your server IP):
+{
+  "mcpServers": {
+    "postgres-mcp-server": {
+      "command": "socat",
+      "args": ["TCP:dev01.int.stortz.tech:3003", "STDIO"],
+      "env": {
+        "MCP_AUTH_TOKEN": "6b649d2159b61bf69f0a05fd9fe03bd8ead6f8414271b69149bce3fcd1326aec"
+      }
+    }
+  }
+}
+
+For SSL/TLS (if configured):
+{
+  "mcpServers": {
+    "postgres-mcp-server": {
+      "command": "socat",
+      "args": [
+        "OPENSSL:your-domain.com:3003,verify=1,cafile=/path/to/ca.crt",
+        "STDIO"
+      ],
+      "env": {
+        "MCP_AUTH_TOKEN": "6b649d2159b61bf69f0a05fd9fe03bd8ead6f8414271b69149bce3fcd1326aec"
+      }
+    }
+  }
+}
+
+For Development (no authentication):
+{
+  "mcpServers": {
+    "postgres-mcp-server": {
+      "command": "socat",
+      "args": ["TCP:localhost:3003", "STDIO"]
+    }
+  }
+}
+*/

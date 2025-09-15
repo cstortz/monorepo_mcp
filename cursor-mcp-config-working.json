@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "postgres-mcp": {
+      "command": "socat",
+      "args": ["TCP:localhost:3003", "STDIO"],
+      "env": {
+        "MCP_AUTH_TOKEN": "6b649d2159b61bf69f0a05fd9fe03bd8ead6f8414271b69149bce3fcd1326aec"
+      }
+    },
+    "rest-api-mcp": {
+      "command": "socat",
+      "args": ["TCP:localhost:3004", "STDIO"],
+      "env": {
+        "MCP_AUTH_TOKEN": "6b649d2159b61bf69f0a05fd9fe03bd8ead6f8414271b69149bce3fcd1326aec"
+      }
+    },
+    "filesystem-mcp": {
+      "command": "socat",
+      "args": ["TCP:localhost:3005", "STDIO"],
+      "env": {
+        "MCP_AUTH_TOKEN": "6b649d2159b61bf69f0a05fd9fe03bd8ead6f8414271b69149bce3fcd1326aec"
+      }
+    }
+  }
+}
+

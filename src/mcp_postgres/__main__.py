@@ -12,7 +12,7 @@ import sys
 import yaml
 from pathlib import Path
 
-from ..mcp_core import ServerConfig, setup_logging
+from ..mcp_core import ServerConfig, setup_logging, resolve_registry_url
 from .server import PostgresMCPServer
 
 
@@ -38,6 +38,10 @@ async def main():
     parser.add_argument(
         "--database-url",
         help="Database service URL (defaults to DATABASE_WS_URL env var)",
+    )
+    parser.add_argument(
+        "--registry-url",
+        help="Endpoint registry URL (defaults to DATABASE_WS_REGISTRY_URL or {DATABASE_WS_URL}/registry/mcp)",
     )
 
     args = parser.parse_args()
@@ -75,6 +79,12 @@ async def main():
         database_ws_url=args.database_url
         or os.getenv("DATABASE_WS_URL")
         or config_data.get("database", {}).get("ws_url", "http://localhost:8000"),
+        database_ws_registry_url=resolve_registry_url(
+            args.registry_url or os.getenv("DATABASE_WS_REGISTRY_URL"),
+            args.database_url
+            or os.getenv("DATABASE_WS_URL")
+            or config_data.get("database", {}).get("ws_url", "http://localhost:8000"),
+        ),
     )
 
     # Validate configuration
@@ -90,6 +100,9 @@ async def main():
 
     # Create and start server
     server_instance = PostgresMCPServer(config)
+    await server_instance.initialize_registry()
+    if config.database_ws_registry_url:
+        logger.info(f"Registry URL: {config.database_ws_registry_url}")
     server = await server_instance.start_server()
 
     # Graceful shutdown handling

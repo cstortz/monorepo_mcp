@@ -8,8 +8,14 @@ import logging
 import time
 from typing import Dict, Any, Optional
 
-from ..mcp_core import BaseMCPServer, ServerConfig, ClientSession
-from .tools import PostgresTools
+from ..mcp_core import (
+    BaseMCPServer,
+    ServerConfig,
+    ClientSession,
+    EndpointRegistryClient,
+    resolve_registry_url,
+)
+from .tools import PostgresTools, LOCAL_ONLY_TOOLS
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +28,48 @@ class PostgresMCPServer(BaseMCPServer):
         logger.debug(
             f"Initializing PostgresMCPServer with database_ws_url: {config.database_ws_url}"
         )
-        self.database_tools = PostgresTools(config.database_ws_url)
+        self.registry_url = resolve_registry_url(
+            config.database_ws_registry_url,
+            config.database_ws_url,
+        )
+        self.registry_client: Optional[EndpointRegistryClient] = None
+        if self.registry_url:
+            self.registry_client = EndpointRegistryClient(self.registry_url)
+        self.database_tools = PostgresTools(
+            config.database_ws_url,
+            registry=self.registry_client,
+        )
         self.tools = self._initialize_tools()
         logger.debug(f"PostgresMCPServer initialized with {len(self.tools)} tools")
+
+    async def initialize_registry(self) -> None:
+        """Fetch registry and merge HTTP-backed tool descriptors."""
+        if not self.registry_client:
+            logger.warning("No registry URL configured; using fallback tool definitions")
+            return
+
+        loaded = await self.registry_client.load()
+        if not loaded:
+            logger.warning(
+                "Registry fetch failed for %s; using fallback tool definitions",
+                self.registry_url,
+            )
+            return
+
+        local_tools = {
+            name: tool
+            for name, tool in self.tools.items()
+            if name in LOCAL_ONLY_TOOLS
+        }
+        registry_tools = self.registry_client.to_mcp_tools_dict()
+        merged = {**registry_tools, **local_tools}
+        self.tools = merged
+        logger.info(
+            "Registry loaded from %s: %d tools exposed (%d local-only)",
+            self.registry_url,
+            len(self.tools),
+            len(local_tools),
+        )
 
     def _initialize_tools(self) -> Dict[str, Dict[str, Any]]:
         """Initialize database-specific tools"""
@@ -393,14 +438,17 @@ class PostgresMCPServer(BaseMCPServer):
 
             # Call the appropriate tool method
             tool_method = getattr(self.database_tools, tool_name, None)
-            if not tool_method:
-                raise ValueError(f"Tool {tool_name} not implemented")
-
-            # Call the tool method with arguments
-            if asyncio.iscoroutinefunction(tool_method):
-                result = await tool_method(**arguments)
+            if tool_method:
+                if asyncio.iscoroutinefunction(tool_method):
+                    result = await tool_method(**arguments)
+                else:
+                    result = tool_method(**arguments)
+            elif tool_name not in LOCAL_ONLY_TOOLS:
+                result = await self.database_tools._invoke_registry_tool(
+                    tool_name, arguments
+                )
             else:
-                result = tool_method(**arguments)
+                raise ValueError(f"Tool {tool_name} not implemented")
 
             return {"content": [{"type": "text", "text": json.dumps(result, indent=2)}]}
         elif method == "resources/list":

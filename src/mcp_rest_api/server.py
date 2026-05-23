@@ -5,15 +5,29 @@ MCP REST API Server implementation
 import asyncio
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Set
 
 try:
-    from ..mcp_core import BaseMCPServer, ServerConfig, ClientSession
+    from ..mcp_core import (
+        BaseMCPServer,
+        ServerConfig,
+        ClientSession,
+        EndpointRegistryClient,
+        resolve_registry_url,
+    )
 except ImportError:
-    from mcp_core import BaseMCPServer, ServerConfig, ClientSession
+    from mcp_core import (
+        BaseMCPServer,
+        ServerConfig,
+        ClientSession,
+        EndpointRegistryClient,
+        resolve_registry_url,
+    )
 from .tools import RestAPITools
 
 logger = logging.getLogger(__name__)
+
+CUSTOM_HANDLERS: Set[str] = {"generate_resume", "download_resume", "get_resume_api_info"}
 
 
 class RestAPIMCPServer(BaseMCPServer):
@@ -21,13 +35,23 @@ class RestAPIMCPServer(BaseMCPServer):
 
     def __init__(self, config: ServerConfig):
         super().__init__(config)
-        self.tools_instance = RestAPITools(config.resume_api_url)
+        self.registry_url = resolve_registry_url(
+            config.resume_api_registry_url,
+            config.resume_api_url,
+        )
+        self.registry_client: Optional[EndpointRegistryClient] = None
+        if self.registry_url:
+            self.registry_client = EndpointRegistryClient(self.registry_url)
+        self.tools_instance = RestAPITools(
+            config.resume_api_url,
+            registry=self.registry_client,
+            registry_url=self.registry_url,
+        )
         self.server = None
-        # Override tools with our REST API tools
-        self.tools = self._initialize_tools()
+        self.tools = self._fallback_tools()
 
-    def _initialize_tools(self) -> Dict[str, Dict[str, Any]]:
-        """Initialize REST API tools"""
+    def _fallback_tools(self) -> Dict[str, Dict[str, Any]]:
+        """Static tool definitions used when registry is unavailable."""
         return {
             "generate_resume": {
                 "name": "generate_resume",
@@ -48,10 +72,7 @@ class RestAPIMCPServer(BaseMCPServer):
                             },
                             "required": ["name", "email"],
                         },
-                        "summary": {
-                            "type": "string",
-                            "description": "Professional summary",
-                        },
+                        "summary": {"type": "string", "description": "Professional summary"},
                         "skills": {
                             "type": "array",
                             "items": {"type": "string"},
@@ -59,35 +80,12 @@ class RestAPIMCPServer(BaseMCPServer):
                         },
                         "experience": {
                             "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "company": {"type": "string"},
-                                    "location": {"type": "string"},
-                                    "duration": {"type": "string"},
-                                    "title": {"type": "string"},
-                                    "summary": {"type": "string"},
-                                    "accomplishments": {
-                                        "type": "array",
-                                        "items": {"type": "string"},
-                                    },
-                                },
-                                "required": ["company", "title", "summary"],
-                            },
+                            "items": {"type": "object"},
                             "description": "Work experience entries",
                         },
                         "education": {
                             "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "institution": {"type": "string"},
-                                    "degree": {"type": "string"},
-                                    "field": {"type": "string"},
-                                    "graduation_year": {"type": "string"},
-                                },
-                                "required": ["institution", "degree"],
-                            },
+                            "items": {"type": "object"},
                             "description": "Education entries",
                         },
                     },
@@ -129,10 +127,34 @@ class RestAPIMCPServer(BaseMCPServer):
             },
             "get_resume_api_info": {
                 "name": "get_resume_api_info",
-                "description": "Get information about the resume API",
+                "description": "Get information about the resume API from the endpoint registry",
                 "inputSchema": {"type": "object", "properties": {}, "required": []},
             },
         }
+
+    async def _load_registry_tools(self) -> None:
+        """Fetch registry and merge tool descriptors."""
+        if not self.registry_client:
+            logger.warning("No registry URL configured; using fallback tool definitions")
+            return
+
+        loaded = await self.registry_client.load()
+        if not loaded:
+            logger.warning(
+                "Registry fetch failed for %s; using fallback tool definitions",
+                self.registry_url,
+            )
+            return
+
+        registry_tools = self.registry_client.to_mcp_tools_dict()
+        merged = dict(registry_tools)
+        merged["get_resume_api_info"] = self._fallback_tools()["get_resume_api_info"]
+        self.tools = merged
+        logger.info(
+            "Registry loaded from %s: %d tools exposed",
+            self.registry_url,
+            len(self.tools),
+        )
 
     async def _handle_client_communication(
         self,
@@ -145,14 +167,12 @@ class RestAPIMCPServer(BaseMCPServer):
 
         while True:
             try:
-                # Read data from client
                 data = await reader.read(4096)
                 if not data:
                     break
 
                 buffer += data.decode("utf-8")
 
-                # Process complete JSON-RPC messages
                 while "\n" in buffer:
                     line, buffer = buffer.split("\n", 1)
                     line = line.strip()
@@ -164,7 +184,6 @@ class RestAPIMCPServer(BaseMCPServer):
                         request = json.loads(line)
                         response = await self._handle_request(request, session)
 
-                        # Send response if request_id is present (not a notification)
                         if response and "id" in request:
                             response_line = json.dumps(response) + "\n"
                             writer.write(response_line.encode("utf-8"))
@@ -195,17 +214,12 @@ class RestAPIMCPServer(BaseMCPServer):
     ) -> Optional[Dict[str, Any]]:
         """Handle individual JSON-RPC request"""
         try:
-            # Update session activity
             session.last_activity = asyncio.get_event_loop().time()
 
-            # Extract request details
             request_id = request.get("id")
             method = request.get("method")
             params = request.get("params", {})
 
-            # Authentication is handled centrally in mcp_core
-
-            # Process request
             try:
                 result = await self._process_request(method, params)
                 success = True
@@ -214,18 +228,14 @@ class RestAPIMCPServer(BaseMCPServer):
                 result = {"error": {"code": -32603, "message": str(e)}}
                 success = False
 
-            # Record metrics
             response_time = asyncio.get_event_loop().time() - session.last_activity
             self.metrics.record_request(method, response_time, success)
 
-            # Don't send response for notifications (requests without id)
             if request_id is None:
                 return None
 
-            # Send response
             response = {"jsonrpc": "2.0", "id": request_id}
 
-            # Check if result contains an error
             if isinstance(result, dict) and "error" in result:
                 response["error"] = result["error"]
             else:
@@ -260,18 +270,14 @@ class RestAPIMCPServer(BaseMCPServer):
             if tool_name not in self.tools:
                 raise ValueError(f"Unknown tool: {tool_name}")
 
-            # Execute tool
             result = await self._execute_tool(tool_name, arguments)
 
             return {"content": [{"type": "text", "text": json.dumps(result, indent=2)}]}
         elif method == "resources/list":
-            # Return empty resources list
             return {"resources": []}
         elif method == "prompts/list":
-            # Return empty prompts list
             return {"prompts": []}
         elif method == "notifications/initialized":
-            # Acknowledge initialization notification
             return {}
         else:
             raise ValueError(f"Unknown method: {method}")
@@ -282,23 +288,24 @@ class RestAPIMCPServer(BaseMCPServer):
         """Execute a specific tool"""
         if tool_name == "generate_resume":
             return await self.tools_instance.generate_resume(args)
-        elif tool_name == "list_resumes":
-            return await self.tools_instance.list_resumes()
-        elif tool_name == "download_resume":
+        if tool_name == "download_resume":
             return await self.tools_instance.download_resume(args.get("resume_id"))
-        elif tool_name == "delete_resume":
-            return await self.tools_instance.delete_resume(args.get("resume_id"))
-        elif tool_name == "get_resume_api_info":
+        if tool_name == "get_resume_api_info":
             return await self.tools_instance.get_resume_api_info()
-        else:
-            raise ValueError(f"Unknown tool: {tool_name}")
+        if tool_name == "list_resumes":
+            return await self.tools_instance.list_resumes()
+        if tool_name == "delete_resume":
+            return await self.tools_instance.delete_resume(args.get("resume_id"))
+        if tool_name in CUSTOM_HANDLERS:
+            raise ValueError(f"Unhandled custom tool: {tool_name}")
+        return await self.tools_instance._invoke_registry_tool(tool_name, args)
 
     async def start(self):
         """Start the MCP server"""
+        await self._load_registry_tools()
         self.server = await self.start_server()
 
         try:
-            # Keep the server running
             async with self.server:
                 await self.server.serve_forever()
         except KeyboardInterrupt:

@@ -13,7 +13,7 @@ from pathlib import Path
 # Add the src directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from mcp_core import ServerConfig, setup_logging
+from mcp_core import ServerConfig, setup_logging, resolve_registry_url
 from mcp_rest_api.server import RestAPIMCPServer
 
 
@@ -28,6 +28,10 @@ async def main():
     parser.add_argument(
         "--resume-api-url", help="Resume API URL (defaults to RESUME_API_URL env var)"
     )
+    parser.add_argument(
+        "--registry-url",
+        help="Endpoint registry URL (defaults to RESUME_API_REGISTRY_URL or {RESUME_API_URL}/registry/mcp)",
+    )
 
     args = parser.parse_args()
 
@@ -35,9 +39,12 @@ async def main():
     setup_logging(args.log_level)
     logger = logging.getLogger(__name__)
 
-    # Configuration priority: CLI arg → Environment var → Default
     resume_api_url = args.resume_api_url or os.getenv(
         "RESUME_API_URL", "http://dev01.int.stortz.tech:8002"
+    )
+    resume_api_registry_url = resolve_registry_url(
+        args.registry_url or os.getenv("RESUME_API_REGISTRY_URL"),
+        resume_api_url,
     )
     auth_token = args.auth_token or os.getenv("MCP_AUTH_TOKEN")
 
@@ -50,6 +57,7 @@ async def main():
         port=args.port,
         auth_token=auth_token,
         resume_api_url=resume_api_url,
+        resume_api_registry_url=resume_api_registry_url,
     )
 
     # Create and start server
@@ -58,6 +66,8 @@ async def main():
     try:
         logger.info(f"Starting MCP REST API server on {args.host}:{args.port}")
         logger.info(f"Resume API URL: {resume_api_url}")
+        if resume_api_registry_url:
+            logger.info(f"Registry URL: {resume_api_registry_url}")
         await server.start()
     except KeyboardInterrupt:
         logger.info("Shutting down server...")

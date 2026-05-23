@@ -12,6 +12,7 @@ services:
       - PYTHONUNBUFFERED=1
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
       - DATABASE_WS_URL=${DATABASE_WS_URL:-http://dev01.int.stortz.tech:8000}
+      - DATABASE_WS_REGISTRY_URL=${DATABASE_WS_REGISTRY_URL:-http://dev01.int.stortz.tech:8000/registry/mcp}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./logs:/app/logs
@@ -62,6 +63,7 @@ services:
       - PYTHONUNBUFFERED=1
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
       - RESUME_API_URL=${RESUME_API_URL:-http://dev01.int.stortz.tech:8002}
+      - RESUME_API_REGISTRY_URL=${RESUME_API_REGISTRY_URL:-http://dev01.int.stortz.tech:8002/registry/mcp}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./logs:/app/logs

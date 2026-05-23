@@ -409,7 +409,32 @@ service_url = args.service_url or os.getenv('[SERVICE]_URL') or config_data.get(
 class ServerConfig:
     # ... other fields ...
     service_url: str = None  # Allow None for environment variable fallback
+    service_registry_url: Optional[str] = None
 ```
+
+#### **Endpoint Registry URLs:**
+
+Backend services should expose `GET /registry/mcp` with tool descriptors (method, path, inputSchema). MCP servers fetch this catalog at startup.
+
+**Resolution priority:** CLI `--registry-url` → `[SERVICE]_REGISTRY_URL` env var → `{SERVICE_URL}/registry/mcp`
+
+**`src/mcp_[service_name]/__main__.py`:**
+```python
+from mcp_core import resolve_registry_url
+
+registry_url = resolve_registry_url(
+    args.registry_url or os.getenv('[SERVICE]_REGISTRY_URL'),
+    service_url,
+)
+```
+
+**`docker/mcp_[service_name]/.env.template`:**
+```env
+[SERVICE]_URL=http://your-service-host:port
+[SERVICE]_REGISTRY_URL=http://your-service-host:port/registry/mcp
+```
+
+Use `mcp_core.registry_client.EndpointRegistryClient` to load the registry and resolve HTTP paths for tool calls. Keep custom handlers for complex tools (binary responses, multi-step workflows).
 
 #### **Docker Environment Variables:**
 
@@ -419,6 +444,7 @@ services:
   [service-name]-mcp:
     environment:
       - [SERVICE]_URL=${[SERVICE]_URL:-http://localhost:8000}
+      - [SERVICE]_REGISTRY_URL=${[SERVICE]_REGISTRY_URL:-http://localhost:8000/registry/mcp}
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
 ```
@@ -433,8 +459,11 @@ LOG_LEVEL=INFO
 
 #### **Common Service URL Patterns:**
 - **Database Service:** `DATABASE_WS_URL=http://database-service:8000`
+- **Database Registry:** `DATABASE_WS_REGISTRY_URL=http://database-service:8000/registry/mcp`
 - **API Service:** `API_URL=http://api-service:8080`
-- **File Service:** `FILE_SERVICE_URL=http://file-service:9000`
+- **API Registry:** `API_REGISTRY_URL=http://api-service:8080/registry/mcp`
+- **Resume API:** `RESUME_API_URL=http://resume-api:8002`
+- **Resume Registry:** `RESUME_API_REGISTRY_URL=http://resume-api:8002/registry/mcp`
 - **Cache Service:** `CACHE_URL=http://cache-service:6379`
 
 #### **Container Networking Considerations:**

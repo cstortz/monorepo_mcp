@@ -2,24 +2,88 @@
 Database tools for MCP server - Updated to utilize all database_ws features
 """
 
-import asyncio
-import json
 import logging
 import os
 import aiohttp
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mcp_core.registry_client import EndpointRegistryClient
 
 logger = logging.getLogger(__name__)
+
+FALLBACK_HTTP: Dict[str, Dict[str, str]] = {
+    "database_health": {"method": "GET", "path": "/admin/health"},
+    "test_connection": {"method": "GET", "path": "/admin/test-connection"},
+    "get_db_info": {"method": "GET", "path": "/admin/db-info"},
+    "list_databases": {"method": "GET", "path": "/admin/databases"},
+    "list_schemas": {"method": "GET", "path": "/admin/schemas"},
+    "list_tables": {"method": "GET", "path": "/admin/tables"},
+    "execute_sql": {"method": "POST", "path": "/raw/sql"},
+    "execute_write_sql": {"method": "POST", "path": "/raw/sql/write"},
+    "read_records": {"method": "GET", "path": "/crud/{schema_name}/{table_name}"},
+    "read_record": {"method": "GET", "path": "/crud/{schema_name}/{table_name}/{record_id}"},
+    "create_record": {"method": "POST", "path": "/crud/{schema_name}/{table_name}"},
+    "update_record": {"method": "PUT", "path": "/crud/{schema_name}/{table_name}/{record_id}"},
+    "delete_record": {"method": "DELETE", "path": "/crud/{schema_name}/{table_name}/{record_id}"},
+    "upsert_record": {"method": "PATCH", "path": "/crud/{schema_name}/{table_name}/{record_id}"},
+    "execute_prepared_sql": {"method": "POST", "path": "/crud/prepared/execute"},
+    "execute_prepared_select": {"method": "POST", "path": "/crud/prepared/select"},
+    "execute_prepared_insert": {"method": "POST", "path": "/crud/prepared/insert"},
+    "execute_prepared_update": {"method": "POST", "path": "/crud/prepared/update"},
+    "execute_prepared_delete": {"method": "POST", "path": "/crud/prepared/delete"},
+    "validate_prepared_sql": {"method": "POST", "path": "/crud/prepared/validate"},
+    "get_prepared_statements": {"method": "GET", "path": "/crud/prepared/statements"},
+    "clear_prepared_statements": {"method": "DELETE", "path": "/crud/prepared/statements"},
+    "clear_specific_prepared_statement": {
+        "method": "DELETE",
+        "path": "/crud/prepared/statements/{statement_name}",
+    },
+}
+
+LOCAL_ONLY_TOOLS = {
+    "get_system_info",
+    "echo",
+    "list_files",
+    "read_file",
+    "get_metrics",
+    "health_check",
+}
 
 
 class PostgresTools:
     """PostgreSQL database operation tools with full database_ws integration"""
 
-    def __init__(self, database_ws_url: str = None):
+    def __init__(
+        self,
+        database_ws_url: str = None,
+        registry: Optional["EndpointRegistryClient"] = None,
+    ):
         if database_ws_url is None:
             database_ws_url = os.getenv("DATABASE_WS_URL", "http://localhost:8000")
         self.database_ws_url = database_ws_url
+        self.registry = registry
         self.session: Optional[aiohttp.ClientSession] = None
+
+    def _resolve_http(
+        self, tool_name: str, **path_params: Any
+    ) -> tuple[str, str]:
+        """Return (method, path) from registry or fallback."""
+        if self.registry and self.registry.loaded:
+            method = self.registry.get_http_method(tool_name)
+            path = self.registry.resolve_path(tool_name, **path_params)
+            if method and path:
+                return method, path
+
+        fallback = FALLBACK_HTTP.get(tool_name)
+        if not fallback:
+            raise ValueError(f"No HTTP mapping for tool: {tool_name}")
+
+        path = fallback["path"]
+        for key, value in path_params.items():
+            if value is not None:
+                path = path.replace(f"{{{key}}}", str(value))
+        return fallback["method"], path
 
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create HTTP session"""
@@ -28,51 +92,73 @@ class PostgresTools:
         return self.session
 
     async def _make_request(
-        self, endpoint: str, method: str = "GET", data: Optional[Dict] = None
+        self,
+        endpoint: str,
+        method: str = "GET",
+        data: Optional[Dict] = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Make HTTP request to database service"""
         session = await self._get_session()
         url = f"{self.database_ws_url}{endpoint}"
 
         logger.debug(f"Making {method} request to: {url}")
-        logger.debug(f"Database WS URL: {self.database_ws_url}")
-        logger.debug(f"Endpoint: {endpoint}")
 
         try:
-            if method == "GET":
-                async with session.get(url) as response:
-                    logger.debug(f"Response status: {response.status}")
-                    logger.debug(f"Response headers: {dict(response.headers)}")
+            async with session.request(
+                method, url, json=data if method in ("POST", "PUT", "PATCH") else None, params=params
+            ) as response:
+                logger.debug(f"Response status: {response.status}")
 
-                    if response.status != 200:
-                        error_text = await response.text()
-                        logger.error(f"HTTP {response.status} error: {error_text}")
-                        return {"error": f"HTTP {response.status}: {error_text}"}
+                if response.status >= 400:
+                    error_text = await response.text()
+                    logger.error(f"HTTP {response.status} error: {error_text}")
+                    return {"error": f"HTTP {response.status}: {error_text}"}
 
-                    response_data = await response.json()
-                    logger.debug(f"Response data: {response_data}")
-                    return response_data
-            elif method == "POST":
-                async with session.post(url, json=data) as response:
-                    logger.debug(f"Response status: {response.status}")
-                    logger.debug(f"Response headers: {dict(response.headers)}")
-
-                    if response.status != 200:
-                        error_text = await response.text()
-                        logger.error(f"HTTP {response.status} error: {error_text}")
-                        return {"error": f"HTTP {response.status}: {error_text}"}
-
-                    response_data = await response.json()
-                    logger.debug(f"Response data: {response_data}")
-                    return response_data
-            else:
-                raise ValueError(f"Unsupported HTTP method: {method}")
+                response_data = await response.json()
+                logger.debug(f"Response data: {response_data}")
+                return response_data
         except Exception as e:
             logger.error(f"Database request failed: {e}")
             logger.error(
                 f"Request details - URL: {url}, Method: {method}, Data: {data}"
             )
             return {"error": str(e)}
+
+    async def _invoke_registry_tool(
+        self, tool_name: str, args: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Generic HTTP invocation for registry-backed tools without dedicated handlers."""
+        args = args or {}
+        path_params = {
+            k: args.get(k)
+            for k in (
+                "schema_name",
+                "table_name",
+                "record_id",
+                "statement_name",
+            )
+            if args.get(k) is not None
+        }
+        method, path = self._resolve_http(tool_name, **path_params)
+        query_params = None
+        if tool_name == "read_records":
+            query_params = {}
+            if args.get("limit") is not None:
+                query_params["limit"] = args["limit"]
+            if args.get("offset") is not None:
+                query_params["offset"] = args["offset"]
+            if args.get("order_by"):
+                query_params["order_by"] = args["order_by"]
+        body = None
+        if method in ("POST", "PUT", "PATCH"):
+            if tool_name in ("create_record", "update_record", "upsert_record"):
+                body = {"data": args.get("data", {})}
+            elif tool_name.startswith("execute_") or tool_name.startswith("validate_"):
+                body = {k: v for k, v in args.items() if k not in path_params}
+            else:
+                body = args
+        return await self._make_request(path, method=method, data=body, params=query_params)
 
     async def get_system_info(self) -> Dict[str, Any]:
         """Get comprehensive system information"""
@@ -156,7 +242,8 @@ class PostgresTools:
     async def database_health(self) -> Dict[str, Any]:
         """Check PostgreSQL database service health and connection"""
         try:
-            result = await self._make_request("/admin/health")
+            method, path = self._resolve_http("database_health")
+            result = await self._make_request(path, method=method)
             return {
                 "status": "connected",
                 "database_url": self.database_ws_url,
@@ -173,7 +260,8 @@ class PostgresTools:
         """List all available PostgreSQL databases"""
         logger.debug("Starting list_databases request")
         try:
-            result = await self._make_request("/admin/databases")
+            method, path = self._resolve_http("list_databases")
+            result = await self._make_request(path, method=method)
             logger.debug(f"Raw result from _make_request: {result}")
 
             if "error" in result:
@@ -202,7 +290,8 @@ class PostgresTools:
     async def list_schemas(self) -> Dict[str, Any]:
         """List all schemas in the PostgreSQL database"""
         try:
-            result = await self._make_request("/admin/schemas")
+            method, path = self._resolve_http("list_schemas")
+            result = await self._make_request(path, method=method)
             return {
                 "schemas": result.get("schemas", []),
                 "count": len(result.get("schemas", [])),
@@ -214,10 +303,10 @@ class PostgresTools:
         """List all tables in the PostgreSQL database or specific schema"""
         try:
             if schema_name:
-                endpoint = f"/admin/tables/{schema_name}"
+                method, path = "GET", f"/admin/tables/{schema_name}"
             else:
-                endpoint = "/admin/tables"
-            result = await self._make_request(endpoint)
+                method, path = self._resolve_http("list_tables")
+            result = await self._make_request(path, method=method)
             return {
                 "tables": result.get("tables", []),
                 "count": len(result.get("tables", [])),
@@ -234,7 +323,8 @@ class PostgresTools:
             data = {"sql": sql}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request("/raw/sql", method="POST", data=data)
+            method, path = self._resolve_http("execute_sql")
+            result = await self._make_request(path, method=method, data=data)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -247,9 +337,8 @@ class PostgresTools:
             data = {"sql": sql}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request(
-                "/raw/sql/write", method="POST", data=data
-            )
+            method, path = self._resolve_http("execute_write_sql")
+            result = await self._make_request(path, method=method, data=data)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -263,9 +352,8 @@ class PostgresTools:
             data = {"sql": sql, "operation_type": operation_type}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request(
-                "/crud/prepared/execute", method="POST", data=data
-            )
+            method, path = self._resolve_http("execute_prepared_sql")
+            result = await self._make_request(path, method=method, data=data)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -278,9 +366,8 @@ class PostgresTools:
             data = {"sql": sql}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request(
-                "/crud/prepared/select", method="POST", data=data
-            )
+            method, path = self._resolve_http("execute_prepared_select")
+            result = await self._make_request(path, method=method, data=data)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -293,9 +380,8 @@ class PostgresTools:
             data = {"sql": sql}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request(
-                "/crud/prepared/insert", method="POST", data=data
-            )
+            method, path = self._resolve_http("execute_prepared_insert")
+            result = await self._make_request(path, method=method, data=data)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -308,9 +394,8 @@ class PostgresTools:
             data = {"sql": sql}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request(
-                "/crud/prepared/update", method="POST", data=data
-            )
+            method, path = self._resolve_http("execute_prepared_update")
+            result = await self._make_request(path, method=method, data=data)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -323,9 +408,8 @@ class PostgresTools:
             data = {"sql": sql}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request(
-                "/crud/prepared/delete", method="POST", data=data
-            )
+            method, path = self._resolve_http("execute_prepared_delete")
+            result = await self._make_request(path, method=method, data=data)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -338,9 +422,8 @@ class PostgresTools:
             data = {"sql": sql, "operation_type": operation_type}
             if parameters:
                 data["parameters"] = parameters
-            result = await self._make_request(
-                "/crud/prepared/validate", method="POST", data=data
-            )
+            method, path = self._resolve_http("validate_prepared_sql")
+            result = await self._make_request(path, method=method, data=data)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -348,7 +431,8 @@ class PostgresTools:
     async def get_prepared_statements(self) -> Dict[str, Any]:
         """Get information about cached prepared statements"""
         try:
-            result = await self._make_request("/crud/prepared/statements", method="GET")
+            method, path = self._resolve_http("get_prepared_statements")
+            result = await self._make_request(path, method=method)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -356,9 +440,8 @@ class PostgresTools:
     async def clear_prepared_statements(self) -> Dict[str, Any]:
         """Clear all cached prepared statements"""
         try:
-            result = await self._make_request(
-                "/crud/prepared/statements", method="DELETE"
-            )
+            method, path = self._resolve_http("clear_prepared_statements")
+            result = await self._make_request(path, method=method)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -368,9 +451,10 @@ class PostgresTools:
     ) -> Dict[str, Any]:
         """Clear a specific prepared statement by name"""
         try:
-            result = await self._make_request(
-                f"/crud/prepared/statements/{statement_name}", method="DELETE"
+            method, path = self._resolve_http(
+                "clear_specific_prepared_statement", statement_name=statement_name
             )
+            result = await self._make_request(path, method=method)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -385,21 +469,20 @@ class PostgresTools:
     ) -> Dict[str, Any]:
         """Read records from a table using CRUD endpoint"""
         try:
-            # Build query parameters
-            params = []
+            query_params = {}
             if limit != 100:
-                params.append(f"limit={limit}")
+                query_params["limit"] = limit
             if offset != 0:
-                params.append(f"offset={offset}")
+                query_params["offset"] = offset
             if order_by:
-                params.append(f"order_by={order_by}")
+                query_params["order_by"] = order_by
 
-            query_string = "&".join(params)
-            endpoint = f"/crud/{schema_name}/{table_name}"
-            if query_string:
-                endpoint += f"?{query_string}"
-
-            result = await self._make_request(endpoint, method="GET")
+            method, path = self._resolve_http(
+                "read_records", schema_name=schema_name, table_name=table_name
+            )
+            result = await self._make_request(
+                path, method=method, params=query_params or None
+            )
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -409,8 +492,13 @@ class PostgresTools:
     ) -> Dict[str, Any]:
         """Read a specific record by ID using CRUD endpoint"""
         try:
-            endpoint = f"/crud/{schema_name}/{table_name}/{record_id}"
-            result = await self._make_request(endpoint, method="GET")
+            method, path = self._resolve_http(
+                "read_record",
+                schema_name=schema_name,
+                table_name=table_name,
+                record_id=record_id,
+            )
+            result = await self._make_request(path, method=method)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -421,10 +509,10 @@ class PostgresTools:
         """Create a new record in a table using CRUD endpoint"""
         try:
             request_data = {"data": data}
-            endpoint = f"/crud/{schema_name}/{table_name}"
-            result = await self._make_request(
-                endpoint, method="POST", data=request_data
+            method, path = self._resolve_http(
+                "create_record", schema_name=schema_name, table_name=table_name
             )
+            result = await self._make_request(path, method=method, data=request_data)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -435,8 +523,13 @@ class PostgresTools:
         """Update an existing record using CRUD endpoint"""
         try:
             request_data = {"data": data}
-            endpoint = f"/crud/{schema_name}/{table_name}/{record_id}"
-            result = await self._make_request(endpoint, method="PUT", data=request_data)
+            method, path = self._resolve_http(
+                "update_record",
+                schema_name=schema_name,
+                table_name=table_name,
+                record_id=record_id,
+            )
+            result = await self._make_request(path, method=method, data=request_data)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -446,8 +539,13 @@ class PostgresTools:
     ) -> Dict[str, Any]:
         """Delete a record from a table using CRUD endpoint"""
         try:
-            endpoint = f"/crud/{schema_name}/{table_name}/{record_id}"
-            result = await self._make_request(endpoint, method="DELETE")
+            method, path = self._resolve_http(
+                "delete_record",
+                schema_name=schema_name,
+                table_name=table_name,
+                record_id=record_id,
+            )
+            result = await self._make_request(path, method=method)
             return result
         except Exception as e:
             return {"error": str(e)}
@@ -458,10 +556,13 @@ class PostgresTools:
         """Upsert a record (insert if not exists, update if exists) using CRUD endpoint"""
         try:
             request_data = {"data": data}
-            endpoint = f"/crud/{schema_name}/{table_name}/{record_id}"
-            result = await self._make_request(
-                endpoint, method="PATCH", data=request_data
+            method, path = self._resolve_http(
+                "upsert_record",
+                schema_name=schema_name,
+                table_name=table_name,
+                record_id=record_id,
             )
+            result = await self._make_request(path, method=method, data=request_data)
             return result
         except Exception as e:
             return {"error": str(e)}

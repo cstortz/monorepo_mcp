@@ -24,3 +24,5 @@ class ServerConfig:
     metrics_enabled: bool = True
     database_ws_url: str = None
     resume_api_url: str = None
+    database_ws_registry_url: Optional[str] = None
+    resume_api_registry_url: Optional[str] = None

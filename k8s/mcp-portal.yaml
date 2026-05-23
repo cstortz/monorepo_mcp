@@ -22,18 +22,81 @@ data:
     </head>
     <body>
       <h1>Monorepo MCP — dev</h1>
-      <p>Connect Cursor or other MCP clients over TCP to <strong>monorepo-mcp.dev.stortz.tech</strong> on the ports below.</p>
+      <p>Connect Cursor or other MCP clients over TCP to <strong>monorepo-mcp.dev.stortz.tech</strong> on the ports below, or open each server’s catalog URI.</p>
       <table>
-        <tr><th>Server</th><th>Port</th><th>socat example</th></tr>
-        <tr><td>postgres-mcp</td><td>3003</td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3003 STDIO</code></td></tr>
-        <tr><td>rest-api-mcp</td><td>3004</td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3004 STDIO</code></td></tr>
-        <tr><td>filesystem-mcp</td><td>3005</td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3005 STDIO</code></td></tr>
-        <tr><td>redis-memory-mcp</td><td>3006</td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3006 STDIO</code></td></tr>
+        <tr><th>Server</th><th>TCP</th><th>URI</th><th>socat example</th></tr>
+        <tr><td>postgres-mcp</td><td>:3003</td><td><a href="/postgres-mcp/">/postgres-mcp/</a></td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3003 STDIO</code></td></tr>
+        <tr><td>rest-api-mcp</td><td>:3004</td><td><a href="/rest-api-mcp/">/rest-api-mcp/</a></td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3004 STDIO</code></td></tr>
+        <tr><td>filesystem-mcp</td><td>:3005</td><td><a href="/filesystem-mcp/">/filesystem-mcp/</a></td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3005 STDIO</code></td></tr>
+        <tr><td>redis-memory-mcp</td><td>:3006</td><td><a href="/redis-memory/">/redis-memory/</a></td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3006 STDIO</code></td></tr>
       </table>
-      <p>Redis Memory docs: <a href="/redis-memory/">/redis-memory/</a></p>
       <p>Machine-readable catalog: <a href="/endpoints.json">/endpoints.json</a></p>
     </body>
     </html>
+  postgres-mcp.index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head><meta charset="utf-8"><title>postgres-mcp</title></head>
+    <body>
+      <h1>postgres-mcp</h1>
+      <p>TCP: <code>monorepo-mcp.dev.stortz.tech:3003</code></p>
+      <p>Cursor: <code>socat TCP:monorepo-mcp.dev.stortz.tech:3003 STDIO</code></p>
+      <p><a href="endpoints.json">endpoints.json</a> · <a href="/">all servers</a></p>
+    </body>
+    </html>
+  postgres-mcp.endpoints.json: |
+    {
+      "server": "postgres-mcp",
+      "host": "monorepo-mcp.dev.stortz.tech",
+      "port": 3003,
+      "endpoint": "monorepo-mcp.dev.stortz.tech:3003",
+      "uri": "http://monorepo-mcp.dev.stortz.tech/postgres-mcp/",
+      "protocol": "tcp",
+      "socat": "socat TCP:monorepo-mcp.dev.stortz.tech:3003 STDIO"
+    }
+  rest-api-mcp.index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head><meta charset="utf-8"><title>rest-api-mcp</title></head>
+    <body>
+      <h1>rest-api-mcp</h1>
+      <p>TCP: <code>monorepo-mcp.dev.stortz.tech:3004</code></p>
+      <p>Cursor: <code>socat TCP:monorepo-mcp.dev.stortz.tech:3004 STDIO</code></p>
+      <p><a href="endpoints.json">endpoints.json</a> · <a href="/">all servers</a></p>
+    </body>
+    </html>
+  rest-api-mcp.endpoints.json: |
+    {
+      "server": "rest-api-mcp",
+      "host": "monorepo-mcp.dev.stortz.tech",
+      "port": 3004,
+      "endpoint": "monorepo-mcp.dev.stortz.tech:3004",
+      "uri": "http://monorepo-mcp.dev.stortz.tech/rest-api-mcp/",
+      "protocol": "tcp",
+      "socat": "socat TCP:monorepo-mcp.dev.stortz.tech:3004 STDIO"
+    }
+  filesystem-mcp.index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head><meta charset="utf-8"><title>filesystem-mcp</title></head>
+    <body>
+      <h1>filesystem-mcp</h1>
+      <p>TCP: <code>monorepo-mcp.dev.stortz.tech:3005</code></p>
+      <p>Cursor: <code>socat TCP:monorepo-mcp.dev.stortz.tech:3005 STDIO</code></p>
+      <p><a href="endpoints.json">endpoints.json</a> · <a href="/">all servers</a></p>
+    </body>
+    </html>
+  filesystem-mcp.endpoints.json: |
+    {
+      "server": "filesystem-mcp",
+      "host": "monorepo-mcp.dev.stortz.tech",
+      "port": 3005,
+      "endpoint": "monorepo-mcp.dev.stortz.tech:3005",
+      "uri": "http://monorepo-mcp.dev.stortz.tech/filesystem-mcp/",
+      "protocol": "tcp",
+      "socat": "socat TCP:monorepo-mcp.dev.stortz.tech:3005 STDIO"
+    }
+    }
   endpoints.json: |
     {
       "environment": "dev",
@@ -42,27 +105,34 @@ data:
         "postgres-mcp": {
           "host": "monorepo-mcp.dev.stortz.tech",
           "port": 3003,
+          "endpoint": "monorepo-mcp.dev.stortz.tech:3003",
+          "uri": "http://monorepo-mcp.dev.stortz.tech/postgres-mcp/",
           "protocol": "tcp",
           "socat": "socat TCP:monorepo-mcp.dev.stortz.tech:3003 STDIO"
         },
         "rest-api-mcp": {
           "host": "monorepo-mcp.dev.stortz.tech",
           "port": 3004,
+          "endpoint": "monorepo-mcp.dev.stortz.tech:3004",
+          "uri": "http://monorepo-mcp.dev.stortz.tech/rest-api-mcp/",
           "protocol": "tcp",
           "socat": "socat TCP:monorepo-mcp.dev.stortz.tech:3004 STDIO"
         },
         "filesystem-mcp": {
           "host": "monorepo-mcp.dev.stortz.tech",
           "port": 3005,
+          "endpoint": "monorepo-mcp.dev.stortz.tech:3005",
+          "uri": "http://monorepo-mcp.dev.stortz.tech/filesystem-mcp/",
           "protocol": "tcp",
           "socat": "socat TCP:monorepo-mcp.dev.stortz.tech:3005 STDIO"
         },
         "redis-memory-mcp": {
           "host": "monorepo-mcp.dev.stortz.tech",
           "port": 3006,
+          "endpoint": "monorepo-mcp.dev.stortz.tech:3006",
+          "uri": "http://monorepo-mcp.dev.stortz.tech/redis-memory/",
           "protocol": "tcp",
-          "socat": "socat TCP:monorepo-mcp.dev.stortz.tech:3006 STDIO",
-          "docs": "https://monorepo-mcp.dev.stortz.tech/redis-memory/"
+          "socat": "socat TCP:monorepo-mcp.dev.stortz.tech:3006 STDIO"
         }
       }
     }
@@ -142,6 +212,18 @@ spec:
                 path: index.html
               - key: endpoints.json
                 path: endpoints.json
+              - key: postgres-mcp.index.html
+                path: postgres-mcp/index.html
+              - key: postgres-mcp.endpoints.json
+                path: postgres-mcp/endpoints.json
+              - key: rest-api-mcp.index.html
+                path: rest-api-mcp/index.html
+              - key: rest-api-mcp.endpoints.json
+                path: rest-api-mcp/endpoints.json
+              - key: filesystem-mcp.index.html
+                path: filesystem-mcp/index.html
+              - key: filesystem-mcp.endpoints.json
+                path: filesystem-mcp/endpoints.json
         - name: nginx-conf
           configMap:
             name: mcp-portal-content

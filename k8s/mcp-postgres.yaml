@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-postgres
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: mcp-postgres
+    app.kubernetes.io/component: mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mcp-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mcp-postgres
+        app.kubernetes.io/component: mcp-server
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: mcp-postgres
+          image: ghcr.io/cstortz/monorepo_mcp/postgres-mcp:latest
+          imagePullPolicy: Always
+          args:
+            - python
+            - -m
+            - src.mcp_postgres
+            - --host
+            - "0.0.0.0"
+            - --port
+            - "3003"
+            - --log-level
+            - INFO
+            - --no-auth
+          ports:
+            - name: mcp-tcp
+              containerPort: 3003
+          envFrom:
+            - configMapRef:
+                name: mcp-config
+            - secretRef:
+                name: mcp-secrets
+                optional: true
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          livenessProbe:
+            tcpSocket:
+              port: 3003
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: 3003
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-postgres
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: mcp-postgres
+spec:
+  selector:
+    app.kubernetes.io/name: mcp-postgres
+  ports:
+    - name: mcp-tcp
+      port: 3003
+      targetPort: 3003
+      nodePort: 30303
+  type: NodePort

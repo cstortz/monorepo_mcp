@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-config
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: mcp-servers
+data:
+  LOG_LEVEL: "INFO"
+  DATABASE_WS_URL: "http://dev01.int.stortz.tech:8000"
+  DATABASE_WS_REGISTRY_URL: "http://dev01.int.stortz.tech:8000/registry/mcp"
+  RESUME_API_URL: "http://resume.dev.stortz.tech"
+  RESUME_API_REGISTRY_URL: "http://resume.dev.stortz.tech/registry/mcp"

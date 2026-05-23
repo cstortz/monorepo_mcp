@@ -35,9 +35,9 @@ USER mcpuser
 # Expose port
 EXPOSE 3005
 
-# Health check - test if the MCP server can start
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD python -c "import asyncio; from src.mcp_filesystem.__main__ import main; asyncio.run(main())" || exit 1
+# Health check - TCP port listening
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import socket; socket.create_connection(('localhost', 3005), timeout=5)" || exit 1
 
 # Run the Filesystem MCP server
 CMD ["python", "-m", "src.mcp_filesystem", "--host", "0.0.0.0", "--port", "3005", "--log-level", "INFO", "--no-auth"]

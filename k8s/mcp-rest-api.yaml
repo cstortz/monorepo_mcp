@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-rest-api
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: mcp-rest-api
+    app.kubernetes.io/component: mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mcp-rest-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mcp-rest-api
+        app.kubernetes.io/component: mcp-server
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: mcp-rest-api
+          image: ghcr.io/cstortz/monorepo_mcp/rest-api-mcp:latest
+          imagePullPolicy: Always
+          args:
+            - python
+            - -m
+            - mcp_rest_api
+            - --host
+            - "0.0.0.0"
+            - --port
+            - "3004"
+            - --log-level
+            - INFO
+          ports:
+            - name: mcp-tcp
+              containerPort: 3004
+          envFrom:
+            - configMapRef:
+                name: mcp-config
+            - secretRef:
+                name: mcp-secrets
+                optional: true
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          livenessProbe:
+            tcpSocket:
+              port: 3004
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: 3004
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-rest-api
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: mcp-rest-api
+spec:
+  selector:
+    app.kubernetes.io/name: mcp-rest-api
+  ports:
+    - name: mcp-tcp
+      port: 3004
+      targetPort: 3004
+      nodePort: 30304
+  type: NodePort

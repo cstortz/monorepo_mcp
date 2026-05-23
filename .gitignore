@@ -144,6 +144,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Kubernetes secrets (use k8s/secret.yaml.example as template)
+k8s/secret.yaml
+
 # Spyder project settings
 .spyderproject
 .spyproject

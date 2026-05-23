@@ -35,9 +35,9 @@ USER mcpuser
 # Expose port
 EXPOSE 3003
 
-# Health check - test if the MCP server can start
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD python -c "import asyncio; from src.mcp_postgres.__main__ import main; asyncio.run(main())" || exit 1
+# Health check - TCP port listening
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import socket; socket.create_connection(('localhost', 3003), timeout=5)" || exit 1
 
 # Run the PostgreSQL MCP server
 CMD ["python", "-m", "src.mcp_postgres", "--host", "0.0.0.0", "--port", "3003", "--log-level", "INFO", "--no-auth"]

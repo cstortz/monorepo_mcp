@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mcp-portal
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: mcp-portal
+    environment: dev
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    external-dns.alpha.kubernetes.io/hostname: monorepo-mcp.dev.stortz.tech
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: monorepo-mcp.dev.stortz.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mcp-portal
+                port:
+                  number: 80

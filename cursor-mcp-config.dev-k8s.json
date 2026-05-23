@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "postgres-mcp-server": {
+      "command": "socat",
+      "args": ["TCP:monorepo-mcp.dev.stortz.tech:3003", "STDIO"],
+      "env": {
+        "MCP_AUTH_TOKEN": "your-auth-token-here"
+      }
+    },
+    "rest-api-mcp-server": {
+      "command": "socat",
+      "args": ["TCP:monorepo-mcp.dev.stortz.tech:3004", "STDIO"],
+      "env": {
+        "MCP_AUTH_TOKEN": "your-auth-token-here"
+      }
+    },
+    "filesystem-mcp-server": {
+      "command": "socat",
+      "args": ["TCP:monorepo-mcp.dev.stortz.tech:3005", "STDIO"],
+      "env": {
+        "MCP_AUTH_TOKEN": "your-auth-token-here"
+      }
+    }
+  }
+}

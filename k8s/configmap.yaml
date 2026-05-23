@@ -5,7 +5,13 @@ metadata:
   namespace: mcp-servers
   labels:
     app.kubernetes.io/name: mcp-servers
+    environment: dev
 data:
+  ENVIRONMENT: "dev"
+  MCP_PUBLIC_HOST: "monorepo-mcp.dev.stortz.tech"
+  MCP_POSTGRES_PORT: "3003"
+  MCP_REST_API_PORT: "3004"
+  MCP_FILESYSTEM_PORT: "3005"
   LOG_LEVEL: "INFO"
   DATABASE_WS_URL: "http://dev01.int.stortz.tech:8000"
   DATABASE_WS_REGISTRY_URL: "http://dev01.int.stortz.tech:8000/registry/mcp"

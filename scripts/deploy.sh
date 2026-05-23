@@ -49,6 +49,9 @@ deploy_k8s() {
   kubectl apply -f k8s/mcp-postgres.yaml
   kubectl apply -f k8s/mcp-rest-api.yaml
   kubectl apply -f k8s/mcp-filesystem.yaml
+  kubectl apply -f k8s/mcp-tcp-gateway.yaml
+  kubectl apply -f k8s/mcp-portal.yaml
+  kubectl apply -f k8s/ingress.yaml
 
   echo "==> Setting images to tag ${IMAGE_TAG}..."
   kubectl set image deployment/mcp-postgres \
@@ -61,7 +64,7 @@ deploy_k8s() {
     mcp-filesystem="${IMAGE_PREFIX}/filesystem-mcp:${IMAGE_TAG}" \
     -n "$NAMESPACE"
 
-  for dep in mcp-postgres mcp-rest-api mcp-filesystem; do
+  for dep in mcp-postgres mcp-rest-api mcp-filesystem mcp-portal; do
     kubectl rollout status "deployment/$dep" -n "$NAMESPACE" --timeout=180s
   done
 

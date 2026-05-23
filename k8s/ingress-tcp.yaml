@@ -1,0 +1,17 @@
+# TCP passthrough for MCP servers via the cluster nginx ingress controller.
+# Applies to the ingress-nginx namespace (same entry point as HTTP ingress).
+#
+# After apply, the ingress controller Service exposes ports 3003–3005.
+# DNS: monorepo-mcp.dev.stortz.tech -> ingress controller IP (HTTP + MCP TCP).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tcp-services
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: mcp-servers
+    environment: dev
+data:
+  "3003": "mcp-servers/mcp-postgres:3003"
+  "3004": "mcp-servers/mcp-rest-api:3004"
+  "3005": "mcp-servers/mcp-filesystem:3005"

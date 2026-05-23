@@ -6,6 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: mcp-postgres
     app.kubernetes.io/component: mcp-server
+    environment: dev
 spec:
   replicas: 1
   selector:
@@ -16,6 +17,7 @@ spec:
       labels:
         app.kubernetes.io/name: mcp-postgres
         app.kubernetes.io/component: mcp-server
+        environment: dev
     spec:
       imagePullSecrets:
         - name: ghcr-pull
@@ -78,5 +80,4 @@ spec:
     - name: mcp-tcp
       port: 3003
       targetPort: 3003
-      nodePort: 30303
-  type: NodePort
+  type: ClusterIP

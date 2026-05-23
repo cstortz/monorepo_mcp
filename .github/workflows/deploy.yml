@@ -171,6 +171,21 @@ jobs:
           kubectl apply -f k8s/mcp-postgres.yaml
           kubectl apply -f k8s/mcp-rest-api.yaml
           kubectl apply -f k8s/mcp-filesystem.yaml
+          kubectl apply -f k8s/mcp-portal.yaml
+          kubectl apply -f k8s/ingress.yaml
+
+          # Merge MCP TCP ports into ingress-nginx (preserve existing tcp-services keys)
+          INGRESS_NS="${INGRESS_NAMESPACE:-ingress-nginx}"
+          for key_val in \
+            "3003 mcp-servers/mcp-postgres:3003" \
+            "3004 mcp-servers/mcp-rest-api:3004" \
+            "3005 mcp-servers/mcp-filesystem:3005"; do
+            key="${key_val%% *}"
+            val="${key_val#* }"
+            kubectl patch configmap tcp-services -n "$INGRESS_NS" --type merge \
+              -p "{\"data\":{\"${key}\":\"${val}\"}}" 2>/dev/null \
+              || kubectl apply -f k8s/ingress-tcp.yaml
+          done
 
           kubectl set image deployment/mcp-postgres \
             mcp-postgres="${IMAGE_PREFIX}/postgres-mcp:${IMAGE_TAG}" \
@@ -182,7 +197,7 @@ jobs:
             mcp-filesystem="${IMAGE_PREFIX}/filesystem-mcp:${IMAGE_TAG}" \
             -n "$NAMESPACE"
 
-          for dep in mcp-postgres mcp-rest-api mcp-filesystem; do
+          for dep in mcp-postgres mcp-rest-api mcp-filesystem mcp-portal; do
             if ! kubectl rollout status "deployment/$dep" -n "$NAMESPACE" --timeout=180s; then
               kubectl get pods -n "$NAMESPACE" -o wide
               kubectl describe pods -n "$NAMESPACE" | tail -80
@@ -207,3 +222,10 @@ jobs:
               --command -- sh -c "nc -z -w5 ${svc}.${NAMESPACE}.svc.cluster.local ${port}"
           done
           echo "All MCP services reachable on ClusterIP"
+
+      - name: Verify public dev endpoint
+        run: |
+          curl -sf --connect-timeout 15 http://monorepo-mcp.dev.stortz.tech/endpoints.json
+          echo ""
+          echo "Dev portal: http://monorepo-mcp.dev.stortz.tech/"
+          echo "MCP TCP: monorepo-mcp.dev.stortz.tech:3003 (postgres), :3004 (rest-api), :3005 (filesystem)"

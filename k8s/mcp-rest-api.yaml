@@ -6,6 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: mcp-rest-api
     app.kubernetes.io/component: mcp-server
+    environment: dev
 spec:
   replicas: 1
   selector:
@@ -77,5 +78,4 @@ spec:
     - name: mcp-tcp
       port: 3004
       targetPort: 3004
-      nodePort: 30304
-  type: NodePort
+  type: ClusterIP

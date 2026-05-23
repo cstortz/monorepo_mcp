@@ -6,6 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: mcp-filesystem
     app.kubernetes.io/component: mcp-server
+    environment: dev
 spec:
   replicas: 1
   selector:
@@ -86,5 +87,4 @@ spec:
     - name: mcp-tcp
       port: 3005
       targetPort: 3005
-      nodePort: 30305
-  type: NodePort
+  type: ClusterIP

@@ -4,3 +4,4 @@ metadata:
   name: mcp-servers
   labels:
     app.kubernetes.io/name: mcp-servers
+    environment: dev

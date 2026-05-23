@@ -28,7 +28,9 @@ data:
         <tr><td>postgres-mcp</td><td>3003</td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3003 STDIO</code></td></tr>
         <tr><td>rest-api-mcp</td><td>3004</td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3004 STDIO</code></td></tr>
         <tr><td>filesystem-mcp</td><td>3005</td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3005 STDIO</code></td></tr>
+        <tr><td>redis-memory-mcp</td><td>3006</td><td><code>socat TCP:monorepo-mcp.dev.stortz.tech:3006 STDIO</code></td></tr>
       </table>
+      <p>Redis Memory docs: <a href="/redis-memory/">/redis-memory/</a></p>
       <p>Machine-readable catalog: <a href="/endpoints.json">/endpoints.json</a></p>
     </body>
     </html>
@@ -54,6 +56,13 @@ data:
           "port": 3005,
           "protocol": "tcp",
           "socat": "socat TCP:monorepo-mcp.dev.stortz.tech:3005 STDIO"
+        },
+        "redis-memory-mcp": {
+          "host": "monorepo-mcp.dev.stortz.tech",
+          "port": 3006,
+          "protocol": "tcp",
+          "socat": "socat TCP:monorepo-mcp.dev.stortz.tech:3006 STDIO",
+          "docs": "https://monorepo-mcp.dev.stortz.tech/redis-memory/"
         }
       }
     }

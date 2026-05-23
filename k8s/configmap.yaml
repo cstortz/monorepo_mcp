@@ -12,6 +12,7 @@ data:
   MCP_POSTGRES_PORT: "3003"
   MCP_REST_API_PORT: "3004"
   MCP_FILESYSTEM_PORT: "3005"
+  MCP_MEMORY_PORT: "3006"
   LOG_LEVEL: "INFO"
   DATABASE_WS_URL: "http://dev01.int.stortz.tech:8000"
   DATABASE_WS_REGISTRY_URL: "http://dev01.int.stortz.tech:8000/registry/mcp"

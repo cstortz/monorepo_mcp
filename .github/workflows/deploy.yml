@@ -179,7 +179,8 @@ jobs:
           for key_val in \
             "3003 mcp-servers/mcp-postgres:3003" \
             "3004 mcp-servers/mcp-rest-api:3004" \
-            "3005 mcp-servers/mcp-filesystem:3005"; do
+            "3005 mcp-servers/mcp-filesystem:3005" \
+            "3006 redis-memory/mcp-redis-memory:3006"; do
             key="${key_val%% *}"
             val="${key_val#* }"
             kubectl patch configmap tcp-services -n "$INGRESS_NS" --type merge \
@@ -228,4 +229,4 @@ jobs:
           curl -sf --connect-timeout 15 http://monorepo-mcp.dev.stortz.tech/endpoints.json
           echo ""
           echo "Dev portal: http://monorepo-mcp.dev.stortz.tech/"
-          echo "MCP TCP: monorepo-mcp.dev.stortz.tech:3003 (postgres), :3004 (rest-api), :3005 (filesystem)"
+          echo "MCP TCP: monorepo-mcp.dev.stortz.tech:3003 (postgres), :3004 (rest-api), :3005 (filesystem), :3006 (redis-memory)"
